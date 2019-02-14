@@ -6721,6 +6721,11 @@ es5-shim@^4.5.13:
   resolved "https://registry.yarnpkg.com/es5-shim/-/es5-shim-4.5.13.tgz#5d88062de049f8969f83783f4a4884395f21d28b"
   integrity sha512-xi6hh6gsvDE0MaW4Vp1lgNEBpVcCXRWfPXj5egDvtgLz4L9MEvNwYEMdJH+JJinWkwa8c3c3o5HduV7dB/e1Hw==
 
+es6-object-assign@^1.0.3:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/es6-object-assign/-/es6-object-assign-1.1.0.tgz#c2c3582656247c39ea107cb1e6652b6f9f24523c"
+  integrity sha1-wsNYJlYkfDnqEHyx5mUrb58kUjw=
+
 es6-promise@^4.0.3, es6-promise@^4.1.1:
   version "4.2.6"
   resolved "https://registry.yarnpkg.com/es6-promise/-/es6-promise-4.2.6.tgz#b685edd8258886365ea62b57d30de28fadcd974f"
@@ -7036,7 +7041,7 @@ exec-sh@^0.3.2:
   resolved "https://registry.yarnpkg.com/exec-sh/-/exec-sh-0.3.2.tgz#6738de2eb7c8e671d0366aea0b0db8c6f7d7391b"
   integrity sha512-9sLAvzhI5nc8TpuQUh4ahMdCrWT00wPWz7j47/emR5+2qEfoZP5zzUXvx+vdx+H6ohhnsYC31iX04QLYJK8zTg==
 
-execa@^0.6.0:
+execa@^0.6.0, execa@^0.6.1:
   version "0.6.3"
   resolved "https://registry.yarnpkg.com/execa/-/execa-0.6.3.tgz#57b69a594f081759c69e5370f0d17b9cb11658fe"
   integrity sha1-V7aaWU8IF1nGnlNw8NF7nLEWWP4=
@@ -8071,14 +8076,6 @@ graphql-cli-prepare@1.4.19:
     graphql-static-binding "0.9.3"
     lodash "4.17.5"
 
-graphql-cli-validate-magento-pwa-queries@~1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/graphql-cli-validate-magento-pwa-queries/-/graphql-cli-validate-magento-pwa-queries-1.0.0.tgz#d50a82007e361f10e477364ca0a9a9a4c6fc6b2a"
-  integrity sha512-BaZbZIV89C+BMDliDhz2Z58bJrbbwxGvlu636Vwiqk0KYp7PpwTu8TCBqJXz4xxxRK/wYlki8gBFlkUslI1o8Q==
-  dependencies:
-    eslint "~5.15.1"
-    eslint-plugin-graphql "~3.0.3"
-
 graphql-cli@~3.0.11:
   version "3.0.11"
   resolved "https://registry.yarnpkg.com/graphql-cli/-/graphql-cli-3.0.11.tgz#135d845c1cd7c2a2aac8be543de334543a0ff437"
@@ -9042,6 +9039,13 @@ is-accessor-descriptor@^1.0.0:
   dependencies:
     kind-of "^6.0.0"
 
+is-admin@^2.1.0:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/is-admin/-/is-admin-2.1.1.tgz#79869030ec02d2cbf8f8acb5705475c226394fba"
+  integrity sha1-eYaQMOwC0sv4+Ky1cFR1wiY5T7o=
+  dependencies:
+    execa "^0.6.1"
+
 is-arrayish@^0.2.1:
   version "0.2.1"
   resolved "https://registry.yarnpkg.com/is-arrayish/-/is-arrayish-0.2.1.tgz#77c99840527aa8ecb1a8ba697b80645a7a926a9d"
@@ -9139,6 +9143,14 @@ is-dom@^1.0.9:
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/is-dom/-/is-dom-1.0.9.tgz#483832d52972073de12b9fe3f60320870da8370d"
   integrity sha1-SDgy1SlyBz3hK5/j9gMghw2oNw0=
+
+is-elevated@~2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/is-elevated/-/is-elevated-2.0.1.tgz#0a2b0a02b5ddbe560e33992acd4b544547499998"
+  integrity sha1-CisKArXdvlYOM5kqzUtURUdJmZg=
+  dependencies:
+    is-admin "^2.1.0"
+    is-root "^1.0.0"
 
 is-extendable@^0.1.0, is-extendable@^0.1.1:
   version "0.1.1"
@@ -9301,6 +9313,11 @@ is-root@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/is-root/-/is-root-2.0.0.tgz#838d1e82318144e5a6f77819d90207645acc7019"
   integrity sha512-F/pJIk8QD6OX5DNhRB7hWamLsUilmkDGho48KbgZ6xg/lmAZXHxzXQ91jzB3yRSw5kdQGGGc4yz8HYhTYIMWPg==
+
+is-root@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/is-root/-/is-root-1.0.0.tgz#07b6c233bc394cd9d02ba15c966bd6660d6342d5"
+  integrity sha1-B7bCM7w5TNnQK6FclmvWZg1jQtU=
 
 is-ssh@^1.3.0:
   version "1.3.1"
@@ -14321,7 +14338,7 @@ shell-quote@1.6.1:
     array-reduce "~0.0.0"
     jsonify "~0.0.0"
 
-shelljs@^0.8.2:
+shelljs@^0.8.1, shelljs@^0.8.2:
   version "0.8.3"
   resolved "https://registry.yarnpkg.com/shelljs/-/shelljs-0.8.3.tgz#a7f3319520ebf09ee81275b2368adb286659b097"
   integrity sha512-fc0BKlAWiLpwZljmOvAOTE/gXawtCoNrP5oaY7KIaQbbyHeQVg01pSEuEGvGh3HEdBU4baCD7wQBwADmM/7f7A==
@@ -14352,6 +14369,15 @@ shrink-ray-current@~4.0.0:
     on-headers "^1.0.0"
     stream-buffers "^3.0.0"
     vary "^1.1.0"
+
+shx@~0.3.2:
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/shx/-/shx-0.3.2.tgz#40501ce14eb5e0cbcac7ddbd4b325563aad8c123"
+  integrity sha512-aS0mWtW3T2sHAenrSrip2XGv39O9dXIFUqxAEWHEOS1ePtGIBavdPJY1kE2IHl14V/4iCbUiNDPGdyYTtmhSoA==
+  dependencies:
+    es6-object-assign "^1.0.3"
+    minimist "^1.2.0"
+    shelljs "^0.8.1"
 
 signal-exit@^3.0.0, signal-exit@^3.0.2:
   version "3.0.2"
