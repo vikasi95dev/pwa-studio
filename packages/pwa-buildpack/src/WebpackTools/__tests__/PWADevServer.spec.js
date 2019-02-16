@@ -3,6 +3,7 @@ jest.mock('fs');
 jest.mock('portscanner');
 jest.mock('graphql-playground-middleware-express');
 jest.mock('../../Utilities/configureHost');
+jest.mock('../../Utilities/logging');
 
 const fs = require('fs');
 jest.spyOn(fs, 'readFile');
@@ -10,7 +11,6 @@ jest.spyOn(fs, 'readFile');
 const debugErrorMiddleware = require('debug-error-middleware');
 const waitForExpect = require('wait-for-expect');
 const portscanner = require('portscanner');
-const stripAnsi = require('strip-ansi');
 const {
     default: playgroundMiddleware
 } = require('graphql-playground-middleware-express');
@@ -50,16 +50,6 @@ const simulate = {
     }
 };
 
-beforeEach(() => {
-    jest.spyOn(console, 'warn').mockImplementation();
-    jest.spyOn(console, 'log').mockImplementation();
-});
-
-afterEach(() => {
-    console.warn.mockRestore();
-    console.log.mockRestore();
-});
-
 test('.configure() returns a configuration object for the `devServer` property of a webpack config', async () => {
     const devServer = await PWADevServer.configure({
         publicPath: 'full/path/to/publicPath',
@@ -75,10 +65,6 @@ test('.configure() returns a configuration object for the `devServer` property o
         stats: expect.objectContaining({ all: false }),
         after: expect.any(Function)
     });
-
-    expect(console.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/avoid\s+ServiceWorker\s+collisions/m)
-    );
 });
 
 test('.configure() creates a project-unique host if `provideSecureHost` is set', async () => {
@@ -118,9 +104,6 @@ test('.configure() falls back to an open port if desired port is not available, 
         },
         publicPath: 'https://bork.bork.bork:10001/bork/'
     });
-    expect(console.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/port\s+8001\s+is\s+in\s+use/m)
-    );
 });
 
 test('.configure() is backwards compatible with "id" option, but warns', async () => {
@@ -143,9 +126,6 @@ test('.configure() is backwards compatible with "id" option, but warns', async (
             subdomain: 'flappy',
             addUniqueHash: false
         })
-    );
-    expect(console.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/option\s+is\s+deprecated/m)
     );
 });
 
@@ -218,8 +198,6 @@ test('debugErrorMiddleware and notifier attached', async () => {
     const [notifier] = waitUntilValid.mock.calls[0];
     expect(notifier).toBeInstanceOf(Function);
     notifier();
-    const consoleOutput = stripAnsi(console.log.mock.calls[0][0]);
-    expect(consoleOutput).toMatch('PWADevServer ready at');
 });
 
 test('graphql-playground middleware attached', async () => {
@@ -312,7 +290,4 @@ test('graphql-playground middleware attached', async () => {
     expect(waitUntilValid).toHaveBeenCalled();
     const [notifier] = waitUntilValid.mock.calls[0];
     notifier();
-    const consoleOutput = stripAnsi(console.log.mock.calls[0][0]);
-    expect(consoleOutput).toMatch(/PWADevServer ready at/);
-    expect(consoleOutput).toMatch(/GraphQL Playground ready at .+?\/graphiql/);
 });
