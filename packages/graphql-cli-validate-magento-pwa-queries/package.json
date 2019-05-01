@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "cp ../../magento-compatibility.js ./lib/",
-    "clean": "rimraf ./node_modules",
+    "clean": "rimraf ./lib/magento-compatibility.js ./node_modules",
     "test": "jest"
   },
   "repository": "https://github.com/magento-research/pwa-studio",
