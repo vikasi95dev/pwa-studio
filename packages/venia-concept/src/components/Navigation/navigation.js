@@ -4,8 +4,6 @@ import { bool, func, number, objectOf, shape, string } from 'prop-types';
 import { mergeClasses } from 'src/classify';
 import AuthBar from 'src/components/AuthBar';
 import AuthModal from 'src/components/AuthModal';
-import { Query } from 'src/drivers';
-import menuQuery from 'src/queries/getNavigationMenu.graphql';
 import Tree from './categoryTree';
 import NavHeader from './navHeader';
 import defaultClasses from './navigation.css';
@@ -26,13 +24,6 @@ const titles = {
     MENU: 'Main Menu'
 };
 
-const useAsyncActions = (...actions) =>
-    useEffect(() => {
-        for (const action of actions) {
-            action();
-        }
-    }, actions);
-
 const Navigation = props => {
     const {
         categories,
@@ -46,7 +37,9 @@ const Navigation = props => {
     } = props;
 
     // call async actions
-    useAsyncActions(getUserDetails);
+    useEffect(() => {
+        getUserDetails();
+    }, [getUserDetails]);
 
     // get local state
     const [view, setView] = useState('MENU');
@@ -88,24 +81,6 @@ const Navigation = props => {
         setView('SIGN_IN');
     }, [setView]);
 
-    // define render props
-    // TODO: replace with `useQuery` once `react-apollo` exports it
-    const renderTree = useCallback(
-        query => {
-            return categoryId ? (
-                <Tree
-                    categoryId={categoryId}
-                    categories={categories}
-                    onNavigate={closeDrawer}
-                    query={query}
-                    setCategoryId={setCategoryId}
-                    updateCategories={updateCategories}
-                />
-            ) : null;
-        },
-        [categories, categoryId]
-    );
-
     return (
         <aside className={rootClassName}>
             <header className={classes.header}>
@@ -116,9 +91,13 @@ const Navigation = props => {
                 />
             </header>
             <div className={bodyClassName}>
-                <Query query={menuQuery} variables={{ id: categoryId }}>
-                    {renderTree}
-                </Query>
+                <Tree
+                    categoryId={categoryId}
+                    categories={categories}
+                    onNavigate={closeDrawer}
+                    setCategoryId={setCategoryId}
+                    updateCategories={updateCategories}
+                />
             </div>
             <div className={classes.footer}>
                 <AuthBar

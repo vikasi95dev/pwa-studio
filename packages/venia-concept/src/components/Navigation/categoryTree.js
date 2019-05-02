@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import { func, number, objectOf, shape, string } from 'prop-types';
+import { useQuery } from '@magento/peregrine';
 
 import { mergeClasses } from 'src/classify';
+import MENU_QUERY from 'src/queries/getNavigationMenu.graphql';
 import Branch from './categoryBranch';
 import Leaf from './categoryLeaf';
 import defaultClasses from './categoryTree.css';
@@ -11,22 +13,33 @@ const Tree = props => {
         categories,
         categoryId,
         onNavigate,
-        query,
         setCategoryId,
         updateCategories
     } = props;
 
     const classes = mergeClasses(defaultClasses, props.classes);
-    const rootCategory = categories[categoryId];
-    const { children, url_path } = rootCategory || {};
-    const { data } = query;
+    const [queryResult, queryApi] = useQuery(MENU_QUERY);
+    const { data } = queryResult;
+    const { runQuery } = queryApi;
 
+    // fetch categories
+    useEffect(() => {
+        if (categoryId) {
+            runQuery({ variables: { id: categoryId } });
+        }
+    }, [categoryId, runQuery]);
+
+    // update redux with fetched categories
     useEffect(() => {
         if (data && data.category) {
             updateCategories(data.category);
         }
     }, [data, updateCategories]);
 
+    const rootCategory = categories[categoryId];
+    const { children, url_path } = rootCategory || {};
+
+    // render a branch for each child category
     const branches = rootCategory
         ? Array.from(children || [], id => (
               <Branch
@@ -68,11 +81,6 @@ Tree.propTypes = {
         tree: string
     }),
     onNavigate: func.isRequired,
-    query: shape({
-        data: shape({
-            category: shape({})
-        })
-    }),
     setCategoryId: func.isRequired,
     updateCategories: func.isRequired
 };
