@@ -26,7 +26,7 @@ In addition to the NPM packages.json and Venia specific validation and testing f
 [`server.js`][]
 : A node script that runs the UPWARD staging server when the `yarn run stage:venia`
 
-[`venia-upward.yml`][]
+[`upward.yml`][]
 : The [UPWARD server specification][] for the Venia PWA storefront.
   This file describes the server behavior for the middle tier service between the PWA and Magento.
 
@@ -170,7 +170,7 @@ The `src/sw.js` file contains the service worker configuration.
 [`deployVeniaSampleData.sh`]: https://github.com/magento-research/pwa-studio/blob/master/packages/venia-concept/deployVeniaSampleData.sh
 [`server.js`]: https://github.com/magento-research/pwa-studio/blob/master/packages/venia-concept/server.js
 [`venia-concept`]: https://github.com/magento-research/pwa-studio/tree/master/packages/venia-concept
-[`venia-upward.yml`]: https://github.com/magento-research/pwa-studio/blob/master/packages/venia-concept/venia-upward.yml
+[`upward.yml`]: https://github.com/magento-research/pwa-studio/blob/master/packages/venia-concept/upward.yml
 [`templates`]: https://github.com/magento-research/pwa-studio/tree/master/packages/venia-concept/templates
 [`static`]: https://github.com/magento-research/pwa-studio/tree/master/packages/venia-concept/static
 [`src`]: https://github.com/magento-research/pwa-studio/tree/master/packages/venia-concept/src

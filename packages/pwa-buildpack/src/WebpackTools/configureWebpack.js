@@ -90,7 +90,6 @@ async function configureWebpack(appRoot, webpackCliEnv) {
             rules: [
                 {
                     test: /\.graphql$/,
-                    exclude: /node_modules/,
                     use: [
                         {
                             loader: 'graphql-tag/loader'
@@ -98,7 +97,9 @@ async function configureWebpack(appRoot, webpackCliEnv) {
                     ]
                 },
                 {
+                    include: [paths.src, /\/esm\//],
                     test: /\.(mjs|js)$/,
+                    sideEffects: false,
                     use: [
                         {
                             loader: 'babel-loader',
@@ -161,7 +162,7 @@ async function configureWebpack(appRoot, webpackCliEnv) {
                 output: 'asset-manifest.json',
                 entrypoints: true,
                 // Add explicit properties to the asset manifest for
-                // venia-upward.yml to use when evaluating app shell templates.
+                // upward.yml to use when evaluating app shell templates.
                 transform(assets) {
                     // All RootComponents go to prefetch, and all client scripts
                     // go to load.

@@ -1,4 +1,4 @@
 import { useContext } from 'react';
-import { ApolloContext } from 'react-apollo/ApolloContext';
+import { ApolloContext } from 'react-apollo';
 
 export const useApolloContext = () => useContext(ApolloContext);

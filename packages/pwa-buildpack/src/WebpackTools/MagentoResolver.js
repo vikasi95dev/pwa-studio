@@ -7,6 +7,7 @@ module.exports = {
     async configure(options) {
         validateConfig('.configure()', options);
         return {
+            alias: {},
             modules: [options.paths.root, 'node_modules'],
             mainFiles: ['index'],
             mainFields: ['module', 'browser', 'main'],
