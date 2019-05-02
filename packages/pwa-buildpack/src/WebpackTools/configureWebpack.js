@@ -38,18 +38,21 @@ async function validateRoot(appRoot) {
     }
 }
 
-async function configureWebpack(appRoot, webpackCliEnv) {
-    await validateRoot(appRoot);
+async function configureWebpack({
+    context,
+    rootComponentPaths,
+    webpackCliEnv
+}) {
+    await validateRoot(context);
 
-    const projectConfig = configureEnvironment(appRoot);
+    const projectConfig = configureEnvironment(context);
     const projectEnv = projectConfig.all();
 
     const paths = {
-        src: path.resolve(appRoot, 'src'),
-        output: path.resolve(appRoot, 'dist')
+        src: path.resolve(context, 'src'),
+        output: path.resolve(context, 'dist')
     };
 
-    const rootComponentsDirs = ['./src/RootComponents/'];
     const libs = [
         'apollo-cache-inmemory',
         'apollo-cache-persist',
@@ -75,7 +78,7 @@ async function configureWebpack(appRoot, webpackCliEnv) {
 
     const config = {
         mode,
-        context: appRoot, // Node global for the running script's directory
+        context, // Node global for the running script's directory
         entry: {
             client: path.resolve(paths.src, 'index.js')
         },
@@ -139,13 +142,13 @@ async function configureWebpack(appRoot, webpackCliEnv) {
         },
         resolve: await MagentoResolver.configure({
             paths: {
-                root: appRoot
+                root: context
             }
         }),
         plugins: [
             await makeMagentoRootComponentsPlugin({
-                rootComponentsDirs,
-                context: appRoot
+                rootComponentsDirs: rootComponentPaths,
+                context
             }),
             new webpack.EnvironmentPlugin(projectEnv),
             new ServiceWorkerPlugin({
@@ -198,9 +201,7 @@ async function configureWebpack(appRoot, webpackCliEnv) {
         config.devtool = 'eval-source-map';
         config.devServer = await PWADevServer.configure({
             publicPath: config.output.publicPath,
-            graphqlPlayground: {
-                queryDirs: [path.resolve(paths.src, 'queries')]
-            },
+            graphqlPlayground: true,
             projectConfig
         });
 
@@ -214,7 +215,7 @@ async function configureWebpack(appRoot, webpackCliEnv) {
             new UpwardPlugin(
                 config.devServer,
                 process.env,
-                path.resolve(appRoot, projectEnv.upwardJsUpwardPath)
+                path.resolve(context, projectEnv.upwardJsUpwardPath)
             )
         );
     } else if (mode === 'production') {

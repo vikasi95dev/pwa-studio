@@ -1,5 +1,5 @@
 import React from 'react';
-import { ApolloContext } from 'react-apollo/ApolloContext';
+import { ApolloContext } from 'react-apollo';
 
 import { useApolloContext } from '../useApolloContext';
 import createTestInstance from '../../util/createTestInstance';

@@ -11,7 +11,7 @@ module.exports = {
             modules: [options.paths.root, 'node_modules'],
             mainFiles: ['index'],
             mainFields: ['module', 'browser', 'main'],
-            extensions: ['.warm', '.mjs', '.js', '.json', '.graphql']
+            extensions: ['.wasm', '.mjs', '.js', '.json', '.graphql']
         };
     }
 };
