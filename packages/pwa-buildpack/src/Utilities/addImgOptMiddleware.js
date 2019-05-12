@@ -25,7 +25,7 @@ try {
 const wantsResizing = req => !!req.query.width;
 
 function addImgOptMiddleware(app, config) {
-    const { backendUrl, cacheExpires, cacheDebug, publicPath, redis } = config;
+    const { backendUrl, cacheExpires, cacheDebug, redis } = config;
     debug(
         `mounting onboard image optimization middleware express-sharp with backend %s`,
         backendUrl
@@ -34,8 +34,8 @@ function addImgOptMiddleware(app, config) {
     let cacheMiddleware;
     let sharpMiddleware;
     try {
-        cacheMiddleware = cache(imgOptConfig.cacheExpires, wantsResizing, {
-            debug: imgOptConfig.debugCache,
+        cacheMiddleware = cache(cacheExpires, wantsResizing, {
+            debug: cacheDebug,
             redisClient: redis && require('redis').redisClient(redis)
         });
     } catch (e) {
@@ -59,7 +59,7 @@ https://github.com/nodejs/node-gyp#installation`
         );
     } else {
         const toExpressSharpUrl = (incomingUrl, incomingQuery) => {
-            const imageUrl = new URL(incomingUrl, imgOptConfig.baseHost);
+            const imageUrl = new URL(incomingUrl, backendUrl);
             debug('imageUrl', imageUrl);
 
             const optParamNames = ['auto', 'format', 'width'];
