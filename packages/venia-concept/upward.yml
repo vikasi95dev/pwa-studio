@@ -27,12 +27,6 @@ body: response.body
 # on the URL pattern in the request object.
 response:
   when:
-    # This URL pattern requests a compressed version of an image from the
-    # server.
-    # The resolution path is directed to the top-level `imageOpt` object.
-    - matches: request.url.pathname
-      pattern: '^/img/resize/(\d+)'
-      use: imageOpt
     # Requests to graphql/rest endpoints, the media library, and cache are
     # handled by the top-level 'proxy' object, which is a ProxyResolver
     # that passes the request through to the backing Magento server.
@@ -68,41 +62,6 @@ response:
   # request is the top-level 'bundles' object, which is a DirectoryResolver that
   # serves the Webpack output assets from the './dist' folder.
   default: bundles
-
-# The imageOpt object returns an HTTP redirect response (301) to Fastly, an
-# image optimization service.
-#
-# This is mainly used in production mode when the PWA does NOT have a
-# Fastly-specific URL factory.
-# This object forwards to Fastly where it is present, and drops back to the
-# uncompressed image otherwise.
-# If this application runs on a non-FastlyIO server, an onboard resizing service
-# is highly recommended.
-#
-# NOTE: In dev and staging mode, the PWADevServer and Venia's server.js declare
-# the image resizing middleware at `/img/` before the UpwardPlugin declares
-# middleware, so a request should never get here.
-#
-# In production mode when USE_FASTLY is true, the Venia PWA has a
-# Fastly-specific URL factory. It should also never hit this route.
-imageOpt:
-  inline:
-    status: 301
-    body:
-      inline: ''
-    headers:
-      inline:
-        Location:
-          # A UrlResolver is used to generate the URL location
-          baseUrl: env.MAGENTO_BACKEND_URL
-          pathname: request.url.query.url
-          query:
-            inline:
-              auto:
-                inline: webp
-              format:
-                inline: pjpg
-              width: $match.$1
 
 # An object that returns true if the NODE_ENV environment variable is set
 # to 'development'. Used as a test in other configurations in this file.

@@ -133,10 +133,6 @@ const PWADevServer = {
                     const { hostname, ssl, ports } = customOrigin;
                     devServerConfig.host = hostname;
                     devServerConfig.https = ssl;
-                    // workaround for https://github.com/webpack/webpack-dev-server/issues/1491
-                    devServerConfig.https.spdy = {
-                        protocols: ['http/1.1']
-                    };
 
                     const requestedPort =
                         devServerEnvVars.port || ports.development;
