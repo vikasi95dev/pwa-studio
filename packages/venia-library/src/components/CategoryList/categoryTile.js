@@ -7,7 +7,7 @@ import defaultClasses from './categoryTile.css';
 // TODO: get categoryUrlSuffix from graphql storeOptions when it is ready
 const categoryUrlSuffix = '.html';
 
-const previewImageSize = 480;
+const previewImageSize = 80;
 
 class CategoryTile extends Component {
     static propTypes = {
