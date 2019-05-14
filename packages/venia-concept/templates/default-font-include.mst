@@ -9,7 +9,7 @@
   while font requests are only _text_ blocking. By removing the API call we only
   wait for font request shave off a few ms :)
 }}
-<link rel="preload" href="https://fonts.gstatic.com/s/muli/v13/7Au_p_0qiz-adZnkOCr2z24PMFk-0g.woff2" as="font">
+<link rel="preload" href="https://fonts.gstatic.com/s/muli/v13/7Au_p_0qiz-adZnkOCr2z24PMFk-0g.woff2" as="font" crossorigin="anonymous">
 
 {{!
   The CSS below this comment is the response copied wholesale from Google's font

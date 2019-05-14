@@ -37,12 +37,18 @@ class CategoryTile extends Component {
         if (image) {
             return resourceUrl(image, {
                 type: 'image-category',
-                width: previewImageSize
+                width: previewImageSize,
+                adjust: {
+                    crop: '1:1,smart'
+                }
             });
         } else if (previewProduct) {
             return resourceUrl(previewProduct.small_image, {
                 type: 'image-product',
-                width: previewImageSize
+                width: previewImageSize,
+                adjust: {
+                    crop: '1:1,smart'
+                }
             });
         } else {
             return null;

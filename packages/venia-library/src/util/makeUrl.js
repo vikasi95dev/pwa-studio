@@ -29,15 +29,15 @@ const mediaBases = new Map()
  * @param {string} props.type - "image-product" or "image-category"
  * @param {number} props.width - the desired resize width of the image
  */
-const makeOptimizedUrl = (path, { type, width } = {}) => {
+const makeOptimizedUrl = (path, { type, width, adjust } = {}) => {
     const { href, origin } = window.location;
     let urlObject = new URL(path, href);
 
     if (type) {
         if (mediaBases.has(type)) {
-        const mediaBase = mediaBases.get(type);
-        // prepend media base if it isn't already part of the pathname
-        if (!urlObject.pathname.includes(mediaBase)) {
+            const mediaBase = mediaBases.get(type);
+            // prepend media base if it isn't already part of the pathname
+            if (!urlObject.pathname.includes(mediaBase)) {
                 urlObject.pathname = mediaBase + urlObject.pathname;
             }
         }
@@ -54,13 +54,18 @@ const makeOptimizedUrl = (path, { type, width } = {}) => {
                 // absolute URL; instead, use a relative URL which has a chance
                 // of being passed through image optimization.
                 urlObject = new URL(path.slice(backend.length), origin);
-    }
+            }
             const params = new URLSearchParams(urlObject.search);
             params.set('auto', 'webp'); // Use the webp format if available
             params.set('format', 'pjpg'); // Use progressive JPGs at least
-    if (width) {
+            if (width) {
                 // resize!
                 params.set('width', width);
+            }
+            if (adjust) {
+                for (const adjustment of Object.entries(adjust)) {
+                    params.set(adjustment[0], adjustment[1]);
+                }
             }
             urlObject.search = params.toString();
         }
