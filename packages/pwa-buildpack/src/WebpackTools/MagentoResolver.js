@@ -10,7 +10,7 @@ module.exports = {
             alias: {},
             modules: [options.paths.root, 'node_modules'],
             mainFiles: ['index'],
-            mainFields: ['module', 'browser', 'main'],
+            mainFields: ['esnext', 'es2015', 'module', 'browser', 'main'],
             extensions: ['.wasm', '.mjs', '.js', '.json', '.graphql']
         };
     }

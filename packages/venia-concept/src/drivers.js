@@ -6,8 +6,6 @@ export {
     Query,
     Switch,
     withRouter
-} from '@magento/venia-library/esm/drivers';
-export {
-    default as resourceUrl
-} from '@magento/venia-library/esm/util/makeUrl';
-export { default as Adapter } from '@magento/venia-library/esm/drivers/adapter';
+} from '@magento/venia-library/drivers';
+export { default as resourceUrl } from '@magento/venia-library/util/makeUrl';
+export { default as Adapter } from '@magento/venia-library/drivers/adapter';
