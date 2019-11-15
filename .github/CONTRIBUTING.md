@@ -20,7 +20,7 @@ _As a developer, please write developer-facing documentation in README or other 
 
 ## Contribution process
 
-Magento maintains a public roadmap for this and other [Magento Research] repositories in each project's issue board.
+Magento maintains a public roadmap for this and other repositories in each project's issue board.
 
 Any and all community participation in this backlog is encouraged and appreciated.
 Even foundational infrastructure stories are available for a generous developer to take on.
@@ -60,8 +60,7 @@ We will un-assign you from this issue, but please feel free to contribute to ano
 
 #### Step 4: Work on the issue
 
-After you provide an estimate, the issue is now "in progress", and
-you officially become a member of the [Magento Research] organization.
+After you provide an estimate, the issue is now "in progress".
 
 If you need more time to work on the issue, please contact us as soon as possible.
 We may request an update on your progress, but we are willing to accommodate.
@@ -89,13 +88,47 @@ Provide as much detail as you can in each section to help us triage and process 
 -   Feature suggestion - A missing feature you would like to see implemented in the project
 -   Other - Any other type of task related to the project
 
+### Definition of Done
+
+- Addresses open issue
+  - Meets listed acceptance criteria
+  - Key stakeholder approves (original issue author, product / business / QA / UX)
+- **Documentation** plays an important role in an open-source library project such as PWA Studio.
+
+  The following changes require documentation:
+
+  - **Public API** -
+    API documentation provide reference information and examples to help developers understand how to use the PWA Studio library.
+    Most of this documentation comes from JSDoc blocks in the source code, so
+    changes that add or modify the public API also require JSDoc block changes.
+
+  - **New project concepts** -
+    Conceptual topics provide background knowledge to help developers understand how the different technologies come together.
+    If a change or feature requires a developer to learn a new pattern, design, or process, then that information needs to be documented.
+    Examples of project concepts include: UPWARD, scaffolding, and project configuration.
+  
+  - **Code functionality** -
+    Documentation is required when major changes happen in the project codebase that affect how the code works.
+    Communicating these changes help maintainers and early adopters keep up with the project.
+    These docs often take the form of release notes.
+
+- Test coverage:
+  - Unit tests & some integrations in Jest
+  - Current MFTF test cases pass (not additional ones)
+- Coding standards:
+  - Code passes all linting steps, adhering to code format and patterns
+  - Code does not violate [PWA Studio coding standards and best practices](https://github.com/magento/pwa-studio/wiki/Project-coding-standards-and-conventions)
+  - Minimum number of reviewers for a major change should be 2
+  - Minimum number of reviewers for a minor change should be 1
+  - Minimum number of reviewers for a hotfix/patch should be 1, and that 1 must be the tech lead
+
+  
 **Note:**
 _Please avoid creating GitHub issues asking for help on bugs in your project that are outside the scope of this project._
 
 [code of conduct]: CODE_OF_CONDUCT.md
 [support]: SUPPORT.md
-[official repository]: https://github.com/magento-research/pwa-studio
+[official repository]: https://github.com/magento/pwa-studio
 [meaningful commit messages]: https://chris.beams.io/posts/git-commit/
-[github issue]: https://github.com/magento-research/pwa-studio/issues/new/choose
-[magento research]: https://github.com/magento-research
-[help wanted]: https://github.com/magento-research/pwa-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22
+[github issue]: https://github.com/magento/pwa-studio/issues/new/choose
+[help wanted]: https://github.com/magento/pwa-studio/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22

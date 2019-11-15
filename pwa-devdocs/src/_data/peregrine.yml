@@ -1,37 +1,55 @@
 title: Peregrine
 entries:
-  - label: Overview
-    url: /peregrine/
+    - label: Overview
+      url: /peregrine/
 
-  - label: Routing in PWA Studio
-    url: /peregrine/routing/
+    - label: Routing in PWA Studio
+      url: /peregrine/routing/
 
-  - label: Storybook UI testing
-    url: /peregrine/testing/storybook/
+    - label: Utility modules
+      entries:
+          - label: REST API client
+            url: /peregrine/reference/rest-api-client/
 
-  - label: Utility modules
-    entries:
+    - label: Custom React hooks
+      entries:
+          - label: useDropdown
+            url: /peregrine/reference/hooks/useDropdown/
 
-      - label: REST API client
-        url: /peregrine/reference/rest-api-client/
+          - label: useEventListener
+            url: /peregrine/reference/hooks/useEventListener/
 
-  - label: React components
-    entries:
+          - label: usePagination
+            url: /peregrine/reference/hooks/usePagination/
 
-      - label: ContainerChild
-        url: /peregrine/reference/container-child/
+          - label: useSearchParam
+            url: /peregrine/reference/hooks/useSearchParam/
 
-      - label: Item
-        url: /peregrine/reference/item/
+          - label: useToasts
+            url: /peregrine/reference/toasts/useToasts
 
-      - label: Items
-        url: /peregrine/reference/items/
+          - label: useToastContext
+            url: /peregrine/reference/toasts/useToastContext/
 
-      - label: List
-        url: /peregrine/reference/list/
+          - label: useWindowSize
+            url: /peregrine/reference/hooks/useWindowSize/
 
-      - label: Price
-        url: /peregrine/reference/price/
+    - label: React components
+      entries:
+          - label: ContainerChild
+            url: /peregrine/reference/container-child/
 
-      - label: Router
-        url: /peregrine/reference/router/
+          - label: Item
+            url: /peregrine/reference/item/
+
+          - label: Items
+            url: /peregrine/reference/items/
+
+          - label: List
+            url: /peregrine/reference/list/
+
+          - label: Price
+            url: /peregrine/reference/price/
+
+          - label: Router
+            url: /peregrine/reference/router/

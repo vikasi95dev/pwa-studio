@@ -202,13 +202,13 @@ Examples of invalid URLS:
 
 **Next:** [Rendering web pages using the TemplateResolver][]
 
-[upward specification]: https://github.com/magento-research/pwa-studio/tree/master/packages/upward-spec
+[upward specification]: https://github.com/magento/pwa-studio/tree/master/packages/upward-spec
 [node]: https://nodejs.org
 [yarn]: https://yarnpkg.com/en/
 [npm]: https://www.npmjs.com/get-npm
 [express]: https://expressjs.com/
 
-[`upward-js`]: {{site.baseurl}}{% link technologies/upward/reference-implementation/index.md %}
-[Rendering web pages using the TemplateResolver]: {{site.baseurl}}{% link tutorials/hello-upward/using-template-resolver/index.md %}
-[InlineResolver]: https://github.com/magento-research/pwa-studio/tree/develop/packages/upward-spec#inlineresolver
-[ConditionalResolver]: https://github.com/magento-research/pwa-studio/tree/develop/packages/upward-spec#conditionalresolver
+[`upward-js`]: {% link technologies/upward/reference-implementation/index.md %}
+[Rendering web pages using the TemplateResolver]: {% link tutorials/hello-upward/using-template-resolver/index.md %}
+[InlineResolver]: https://github.com/magento/pwa-studio/tree/develop/packages/upward-spec#inlineresolver
+[ConditionalResolver]: https://github.com/magento/pwa-studio/tree/develop/packages/upward-spec#conditionalresolver
