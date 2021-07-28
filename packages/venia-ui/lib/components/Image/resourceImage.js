@@ -1,9 +1,10 @@
 import React from 'react';
 import { func, instanceOf, number, oneOfType, string } from 'prop-types';
-import { resourceUrl } from '@magento/venia-drivers';
 import { useResourceImage } from '@magento/peregrine/lib/talons/Image/useResourceImage';
-
-import { generateSrcset } from '../../util/images';
+import {
+    generateSrcset,
+    generateUrl
+} from '@magento/peregrine/lib/util/imageUtils';
 
 /**
  * Renders a Magento resource image.
@@ -17,6 +18,7 @@ import { generateSrcset } from '../../util/images';
  * @param {string}   props.type the Magento image type ("image-category" / "image-product"). Used to build the resource URL.
  * @param {number}   props.width the intrinsic width of the image & the width to request for the fallback image for browsers that don't support srcset / sizes.
  * @param {Map}      props.widths a map of breakpoints to possible widths used to create the img's sizes attribute.
+ * @param {number}   props.ratio is the image width to height ratio. Defaults to 4/5.
  */
 const ResourceImage = props => {
     const {
@@ -29,17 +31,19 @@ const ResourceImage = props => {
         type,
         width,
         widths,
+        ratio,
         ...rest
     } = props;
 
     const talonProps = useResourceImage({
         generateSrcset,
+        generateUrl,
         height,
         resource,
-        resourceUrl,
         type,
         width,
-        widths
+        widths,
+        ratio
     });
 
     const { sizes, src, srcSet } = talonProps;
@@ -51,7 +55,6 @@ const ResourceImage = props => {
             {...rest}
             alt={alt}
             className={className}
-            height={height}
             onError={handleError}
             onLoad={handleLoad}
             sizes={sizes}

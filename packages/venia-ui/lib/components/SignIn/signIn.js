@@ -1,24 +1,28 @@
 import React from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { func, shape, string } from 'prop-types';
 import { Form } from 'informed';
+import { useSignIn } from '@magento/peregrine/lib/talons/SignIn/useSignIn';
 
-import { mergeClasses } from '../../classify';
+import { useStyle } from '../../classify';
+import { isRequired } from '../../util/formValidators';
 import Button from '../Button';
 import Field from '../Field';
 import LoadingIndicator from '../LoadingIndicator';
 import TextInput from '../TextInput';
-import { isRequired } from '../../util/formValidators';
-
 import defaultClasses from './signIn.css';
-import { useSignIn } from '@magento/peregrine/lib/talons/SignIn/useSignIn';
-import SIGN_IN_MUTATION from '../../queries/signIn.graphql';
+import { GET_CART_DETAILS_QUERY } from './signIn.gql';
+import LinkButton from '../LinkButton';
+import Password from '../Password';
+import FormError from '../FormError/formError';
 
 const SignIn = props => {
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const classes = useStyle(defaultClasses, props.classes);
     const { setDefaultUsername, showCreateAccount, showForgotPassword } = props;
 
+    const { formatMessage } = useIntl();
     const talonProps = useSignIn({
-        query: SIGN_IN_MUTATION,
+        getCartDetailsQuery: GET_CART_DETAILS_QUERY,
         setDefaultUsername,
         showCreateAccount,
         showForgotPassword
@@ -26,97 +30,117 @@ const SignIn = props => {
 
     const {
         errors,
-        formRef,
         handleCreateAccount,
         handleForgotPassword,
         handleSubmit,
-        isBusy
+        isBusy,
+        setFormApi
     } = talonProps;
-
-    // Map over any errors we get and display an appropriate error.
-    const errorMessage = errors.length
-        ? errors
-              .map(({ message }) => message)
-              .reduce((acc, msg) => msg + '\n' + acc, '')
-        : null;
 
     if (isBusy) {
         return (
             <div className={classes.modal_active}>
-                <LoadingIndicator>{'Signing In'}</LoadingIndicator>
+                <LoadingIndicator>
+                    <FormattedMessage
+                        id={'signIn.loadingText'}
+                        defaultMessage={'Signing In'}
+                    />
+                </LoadingIndicator>
             </div>
         );
     }
 
+    const forgotPasswordClasses = {
+        root: classes.forgotPasswordButton
+    };
+
     return (
         <div className={classes.root}>
+            <h2 className={classes.title}>
+                <FormattedMessage
+                    id={'signIn.titleText'}
+                    defaultMessage={'Sign-in to Your Account'}
+                />
+            </h2>
+            <FormError errors={Array.from(errors.values())} />
             <Form
-                ref={formRef}
+                getApi={setFormApi}
                 className={classes.form}
                 onSubmit={handleSubmit}
             >
-                <Field label="Email" required={true}>
+                <Field
+                    label={formatMessage({
+                        id: 'signIn.emailAddressText',
+                        defaultMessage: 'Email address'
+                    })}
+                >
                     <TextInput
                         autoComplete="email"
                         field="email"
                         validate={isRequired}
                     />
                 </Field>
-                <Field label="Password" required={true}>
-                    <TextInput
-                        autoComplete="current-password"
-                        field="password"
-                        type="password"
-                        validate={isRequired}
-                    />
-                </Field>
-                <div className={classes.signInError}>{errorMessage}</div>
-                <div className={classes.signInButton}>
+                <Password
+                    fieldName="password"
+                    label={formatMessage({
+                        id: 'signIn.passwordText',
+                        defaultMessage: 'Password'
+                    })}
+                    validate={isRequired}
+                    autoComplete="current-password"
+                    isToggleButtonHidden={false}
+                />
+                <div className={classes.forgotPasswordButtonContainer}>
+                    <LinkButton
+                        classes={forgotPasswordClasses}
+                        type="button"
+                        onClick={handleForgotPassword}
+                    >
+                        <FormattedMessage
+                            id={'signIn.forgotPasswordText'}
+                            defaultMessage={'Forgot Password?'}
+                        />
+                    </LinkButton>
+                </div>
+                <div className={classes.buttonsContainer}>
                     <Button priority="high" type="submit">
-                        {'Sign In'}
+                        <FormattedMessage
+                            id={'signIn.signInText'}
+                            defaultMessage={'Sign In'}
+                        />
+                    </Button>
+                    <Button
+                        priority="normal"
+                        type="button"
+                        onClick={handleCreateAccount}
+                    >
+                        <FormattedMessage
+                            id={'signIn.createAccountText'}
+                            defaultMessage={'Create an Account'}
+                        />
                     </Button>
                 </div>
             </Form>
-            <div className={classes.forgotPasswordButton}>
-                <Button
-                    priority="low"
-                    type="button"
-                    onClick={handleForgotPassword}
-                    classes={{
-                        root_lowPriority: classes.forgotPasswordButtonRoot
-                    }}
-                >
-                    {'Forgot Password?'}
-                </Button>
-            </div>
-            <div className={classes.signInDivider} />
-            <div className={classes.createAccountButton}>
-                <Button
-                    priority="normal"
-                    type="button"
-                    onClick={handleCreateAccount}
-                >
-                    {'Create an Account'}
-                </Button>
-            </div>
         </div>
     );
 };
 
 export default SignIn;
-
 SignIn.propTypes = {
     classes: shape({
-        createAccountButton: string,
+        buttonsContainer: string,
         form: string,
         forgotPasswordButton: string,
-        forgotPasswordButtonRoot: string,
+        forgotPasswordButtonContainer: string,
         root: string,
-        signInButton: string,
-        signInDivider: string,
-        signInError: string
+        title: string
     }),
-    setDefaultUsername: func.isRequired,
-    showCreateAccount: func.isRequired,
-    showForgotPassword: func.isRequired
+    setDefaultUsername: func,
+    showCreateAccount: func,
+    showForgotPassword: func
+};
+SignIn.defaultProps = {
+    setDefaultUsername: () => {},
+    showCreateAccount: () => {},
+    showForgotPassword: () => {}
 };

@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useHistory } from 'react-router-dom';
+import { useMutation } from '@apollo/client';
+
+import mergeOperations from '../../util/shallowMerge';
 import { useUserContext } from '../../context/user';
+import DEFAULT_OPERATIONS from './authModal.gql';
 
 const UNAUTHED_ONLY = ['CREATE_ACCOUNT', 'FORGOT_PASSWORD', 'SIGN_IN'];
 
@@ -12,6 +17,10 @@ const UNAUTHED_ONLY = ['CREATE_ACCOUNT', 'FORGOT_PASSWORD', 'SIGN_IN'];
  * @param {function} props.showForgotPassword - callback that shows forgot password view
  * @param {function} props.showMainMenu - callback that shows main menu view
  * @param {function} props.showMyAccount - callback that shows my account view
+ * @param {function} props.showSignIn - callback that shows signin view
+ * @param {DocumentNode} props.operations.signOutMutation - mutation to call when signing out
+ * @param {string} props.view - string that represents the current view
+ *
  * @return {{
  *  handleClose: function,
  *  handleCreateAccount: function,
@@ -30,35 +39,62 @@ export const useAuthModal = props => {
         showForgotPassword,
         showMainMenu,
         showMyAccount,
+        showSignIn,
         view
     } = props;
 
+    const operations = mergeOperations(DEFAULT_OPERATIONS, props.operations);
+    const { signOutMutation } = operations;
+
+    const [isSigningOut, setIsSigningOut] = useState(false);
     const [username, setUsername] = useState('');
-    const [{ currentUser }, { signOut }] = useUserContext();
+    const [{ currentUser, isSignedIn }, { signOut }] = useUserContext();
+    const [revokeToken] = useMutation(signOutMutation);
+    const history = useHistory();
 
     // If the user is authed, the only valid view is "MY_ACCOUNT".
     // view an also be `MENU` but in that case we don't want to act.
     useEffect(() => {
-        if (currentUser && currentUser.id && UNAUTHED_ONLY.includes(view)) {
+        if (currentUser && currentUser.email && UNAUTHED_ONLY.includes(view)) {
             showMyAccount();
         }
     }, [currentUser, showMyAccount, view]);
+
+    // If the user token was invalidated by way of expiration, we need to reset
+    // the view back to the main menu.
+    useEffect(() => {
+        if (!isSignedIn && view === 'MY_ACCOUNT' && !isSigningOut) {
+            showMainMenu();
+        }
+    }, [isSignedIn, isSigningOut, showMainMenu, view]);
 
     const handleClose = useCallback(() => {
         showMainMenu();
         closeDrawer();
     }, [closeDrawer, showMainMenu]);
 
+    const handleCancel = useCallback(() => {
+        showSignIn();
+    }, [showSignIn]);
+
     const handleCreateAccount = useCallback(() => {
         showMyAccount();
     }, [showMyAccount]);
 
-    const handleSignOut = useCallback(() => {
-        // TODO: Get history from router context when implemented.
-        signOut({ history: window.history });
-    }, [signOut]);
+    const handleSignOut = useCallback(async () => {
+        setIsSigningOut(true);
+
+        // Delete cart/user data from the redux store.
+        await signOut({ revokeToken });
+
+        // Refresh the page as a way to say "re-initialize". An alternative
+        // would be to call apolloClient.resetStore() but that would require
+        // a large refactor.
+        history.go(0);
+    }, [history, revokeToken, signOut]);
 
     return {
+        handleCancel,
         handleClose,
         handleCreateAccount,
         handleSignOut,

@@ -1,20 +1,74 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useQuery } from '@apollo/client';
+import { useHistory } from 'react-router-dom';
+
 import { useCartContext } from '@magento/peregrine/lib/context/cart';
+import { useDropdown } from '@magento/peregrine/lib/hooks/useDropdown';
 
-export const useCartTrigger = () => {
-    const [{ details }, { getCartDetails, toggleCart }] = useCartContext();
-    const { items_qty: itemCount } = details;
+/**
+ * Routes to hide the mini cart on.
+ */
+const DENIED_MINI_CART_ROUTES = ['/checkout'];
 
-    useEffect(() => {
-        getCartDetails();
-    }, [getCartDetails]);
+/**
+ *
+ * @param {DocumentNode} props.queries.getItemCountQuery query to get the total cart items count
+ *
+ * @returns {
+ *      itemCount: Number,
+ *      miniCartIsOpen: Boolean,
+ *      handleLinkClick: Function,
+ *      handleTriggerClick: Function,
+ *      miniCartRef: Function,
+ *      hideCartTrigger: Function,
+ *      setMiniCartIsOpen: Function
+ *  }
+ */
+export const useCartTrigger = props => {
+    const {
+        queries: { getItemCountQuery }
+    } = props;
 
-    const handleClick = useCallback(() => {
-        toggleCart();
-    }, [toggleCart]);
+    const [{ cartId }] = useCartContext();
+    const {
+        elementRef: miniCartRef,
+        expanded: miniCartIsOpen,
+        setExpanded: setMiniCartIsOpen,
+        triggerRef: miniCartTriggerRef
+    } = useDropdown();
+    const history = useHistory();
+
+    const { data } = useQuery(getItemCountQuery, {
+        fetchPolicy: 'cache-and-network',
+        nextFetchPolicy: 'cache-first',
+        variables: {
+            cartId
+        },
+        skip: !cartId
+    });
+    const itemCount = data ? data.cart.total_quantity : 0;
+    const hideCartTrigger = DENIED_MINI_CART_ROUTES.includes(
+        history.location.pathname
+    );
+
+    const handleTriggerClick = useCallback(() => {
+        // Open the mini cart.
+        setMiniCartIsOpen(isOpen => !isOpen);
+    }, [setMiniCartIsOpen]);
+
+    const handleLinkClick = useCallback(() => {
+        // Send the user to the cart page.
+        history.push('/cart');
+    }, [history]);
 
     return {
-        handleClick,
-        itemCount
+        handleLinkClick,
+        handleTriggerClick,
+        itemCount,
+        miniCartIsOpen,
+        miniCartRef,
+        hideCartTrigger,
+        setMiniCartIsOpen,
+        miniCartTriggerRef
     };
 };

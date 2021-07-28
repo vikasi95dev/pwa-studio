@@ -1,17 +1,22 @@
-import React, { Suspense } from 'react';
+import React, { Fragment, Suspense } from 'react';
 import { shape, string } from 'prop-types';
+import { Link, Route } from 'react-router-dom';
 
 import Logo from '../Logo';
-import { Link, resourceUrl, Route } from '@magento/venia-drivers';
-
+import AccountTrigger from './accountTrigger';
 import CartTrigger from './cartTrigger';
 import NavTrigger from './navTrigger';
 import SearchTrigger from './searchTrigger';
 import OnlineIndicator from './onlineIndicator';
 import { useHeader } from '@magento/peregrine/lib/talons/Header/useHeader';
+import resourceUrl from '@magento/peregrine/lib/util/makeUrl';
 
-import { mergeClasses } from '../../classify';
+import { useStyle } from '../../classify';
 import defaultClasses from './header.css';
+import PageLoadingIndicator from '../PageLoadingIndicator';
+import StoreSwitcher from './storeSwitcher';
+import CurrencySwitcher from './currencySwitcher';
+import MegaMenu from '../MegaMenu';
 
 const SearchBar = React.lazy(() => import('../SearchBar'));
 
@@ -20,55 +25,69 @@ const Header = props => {
         handleSearchTriggerClick,
         hasBeenOffline,
         isOnline,
-        searchOpen
+        isPageLoading,
+        isSearchOpen,
+        searchRef,
+        searchTriggerRef
     } = useHeader();
 
-    const classes = mergeClasses(defaultClasses, props.classes);
-    const rootClass = searchOpen ? classes.open : classes.closed;
+    const classes = useStyle(defaultClasses, props.classes);
+    const rootClass = isSearchOpen ? classes.open : classes.closed;
     const searchBarFallback = (
-        <div className={classes.searchFallback}>
+        <div className={classes.searchFallback} ref={searchRef}>
             <div className={classes.input}>
                 <div className={classes.loader} />
             </div>
         </div>
     );
-    const searchBar = searchOpen ? (
+    const searchBar = isSearchOpen ? (
         <Suspense fallback={searchBarFallback}>
-            <Route
-                render={({ history, location }) => (
-                    <SearchBar
-                        isOpen={searchOpen}
-                        history={history}
-                        location={location}
-                    />
-                )}
-            />
+            <Route>
+                <SearchBar isOpen={isSearchOpen} ref={searchRef} />
+            </Route>
         </Suspense>
+    ) : null;
+    const pageLoadingIndicator = isPageLoading ? (
+        <PageLoadingIndicator />
     ) : null;
 
     return (
-        <header className={rootClass}>
-            <div className={classes.toolbar}>
-                <div className={classes.primaryActions}>
-                    <NavTrigger />
-                </div>
-                <OnlineIndicator
-                    hasBeenOffline={hasBeenOffline}
-                    isOnline={isOnline}
-                />
-                <Link to={resourceUrl('/')}>
-                    <Logo classes={{ logo: classes.logo }} />
-                </Link>
-                <div className={classes.secondaryActions}>
-                    <SearchTrigger
-                        active={searchOpen}
-                        onClick={handleSearchTriggerClick}
-                    />
-                    <CartTrigger />
+        <Fragment>
+            <div className={classes.switchersContainer}>
+                <div className={classes.switchers}>
+                    <StoreSwitcher />
+                    <CurrencySwitcher />
                 </div>
             </div>
-            {searchBar}
-        </header>
+            <header className={rootClass}>
+                <div className={classes.toolbar}>
+                    <div className={classes.primaryActions}>
+                        <NavTrigger />
+                    </div>
+                    {pageLoadingIndicator}
+                    <OnlineIndicator
+                        hasBeenOffline={hasBeenOffline}
+                        isOnline={isOnline}
+                    />
+                    <Link
+                        to={resourceUrl('/')}
+                        className={classes.logoContainer}
+                    >
+                        <Logo classes={{ logo: classes.logo }} />
+                    </Link>
+                    <MegaMenu />
+                    <div className={classes.secondaryActions}>
+                        <SearchTrigger
+                            onClick={handleSearchTriggerClick}
+                            ref={searchTriggerRef}
+                        />
+                        <AccountTrigger />
+                        <CartTrigger />
+                    </div>
+                </div>
+                {searchBar}
+            </header>
+        </Fragment>
     );
 };
 
@@ -79,7 +98,9 @@ Header.propTypes = {
         open: string,
         primaryActions: string,
         secondaryActions: string,
-        toolbar: string
+        toolbar: string,
+        switchers: string,
+        switchersContainer: string
     })
 };
 

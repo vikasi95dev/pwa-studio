@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@apollo/client';
 import { useHistory, useLocation } from 'react-router-dom';
+
 import { useAppContext } from '@magento/peregrine/lib/context/app';
 
-import { getSearchFromState, getStateFromSearch, stripHtml } from './helpers';
+import mergeOperations from '../../util/shallowMerge';
 import { useFilterState } from './useFilterState';
+import { getSearchFromState, getStateFromSearch, stripHtml } from './helpers';
+
+import DEFAULT_OPERATIONS from './filterModal.gql';
+
+const DRAWER_NAME = 'filter';
 
 /**
  * Filter Modal talon.
@@ -17,14 +24,59 @@ import { useFilterState } from './useFilterState';
  */
 export const useFilterModal = props => {
     const { filters } = props;
+
+    const operations = mergeOperations(DEFAULT_OPERATIONS, props.operations);
+    const { getFilterInputsQuery } = operations;
+
     const [isApplying, setIsApplying] = useState(false);
-    const [{ drawer }, { closeDrawer }] = useAppContext();
+    const [{ drawer }, { toggleDrawer, closeDrawer }] = useAppContext();
     const [filterState, filterApi] = useFilterState();
     const prevDrawer = useRef(null);
-    const isOpen = drawer === 'filter';
+    const isOpen = drawer === DRAWER_NAME;
 
     const history = useHistory();
     const { pathname, search } = useLocation();
+
+    const { data: introspectionData } = useQuery(getFilterInputsQuery);
+
+    const inputFields = introspectionData
+        ? introspectionData.__type.inputFields
+        : [];
+
+    const attributeCodes = useMemo(
+        () => filters.map(({ attribute_code }) => attribute_code),
+        [filters]
+    );
+
+    // Create a set of disabled filters.
+    const DISABLED_FILTERS = useMemo(() => {
+        const disabled = new Set();
+        // Disable category filtering when not on a search page.
+        if (pathname !== '/search.html') {
+            disabled.add('category_id');
+        }
+
+        return disabled;
+    }, [pathname]);
+
+    // Get "allowed" filters by intersection of filter attribute codes and
+    // schema input field types. This restricts the displayed filters to those
+    // that the api will understand.
+    const possibleFilters = useMemo(() => {
+        const nextFilters = new Set();
+
+        // perform mapping and filtering in the same cycle
+        for (const { name } of inputFields) {
+            const isValid = attributeCodes.includes(name);
+            const isEnabled = !DISABLED_FILTERS.has(name);
+
+            if (isValid && isEnabled) {
+                nextFilters.add(name);
+            }
+        }
+
+        return nextFilters;
+    }, [DISABLED_FILTERS, attributeCodes, inputFields]);
 
     // iterate over filters once to set up all the collections we need
     const [filterNames, filterKeys, filterItems] = useMemo(() => {
@@ -33,25 +85,28 @@ export const useFilterModal = props => {
         const itemsByGroup = new Map();
 
         for (const filter of filters) {
-            const { filter_items, name, request_var: group } = filter;
-            const items = [];
+            const { options, label: name, attribute_code: group } = filter;
 
-            // add filter name
-            names.set(group, name);
+            // If this aggregation is not a possible filter, just back out.
+            if (possibleFilters.has(group)) {
+                const items = [];
 
-            // add filter key permutations
-            keys.add(`${group}[title]`);
-            keys.add(`${group}[value]`);
+                // add filter name
+                names.set(group, name);
 
-            // add items
-            for (const { label, value_string: value } of filter_items) {
-                items.push({ title: stripHtml(label), value });
+                // add filter key permutations
+                keys.add(`${group}[filter]`);
+
+                // add items
+                for (const { label, value } of options) {
+                    items.push({ title: stripHtml(label), value });
+                }
+                itemsByGroup.set(group, items);
             }
-            itemsByGroup.set(group, items);
         }
 
         return [names, keys, itemsByGroup];
-    }, [filters]);
+    }, [filters, possibleFilters]);
 
     // on apply, write filter state to location
     useEffect(() => {
@@ -70,11 +125,48 @@ export const useFilterModal = props => {
         }
     }, [filterKeys, filterState, history, isApplying, pathname, search]);
 
-    // on drawer toggle, read filter state from location
-    useEffect(() => {
-        const justOpened = prevDrawer.current === null && drawer === 'filter';
-        const justClosed = prevDrawer.current === 'filter' && drawer === null;
+    const handleOpen = useCallback(() => {
+        toggleDrawer(DRAWER_NAME);
+    }, [toggleDrawer]);
 
+    const handleClose = useCallback(() => {
+        closeDrawer();
+    }, [closeDrawer]);
+
+    const handleApply = useCallback(() => {
+        setIsApplying(true);
+        handleClose();
+    }, [handleClose]);
+
+    const handleReset = useCallback(() => {
+        filterApi.clear();
+        setIsApplying(true);
+    }, [filterApi, setIsApplying]);
+
+    const handleKeyDownActions = useCallback(
+        event => {
+            // do not handle keyboard actions when the modal is closed
+            if (!isOpen) {
+                return;
+            }
+
+            switch (event.keyCode) {
+                // when "Esc" key fired -> close the modal
+                case 27:
+                    handleClose();
+                    break;
+            }
+        },
+        [isOpen, handleClose]
+    );
+
+    useEffect(() => {
+        const justOpened =
+            prevDrawer.current === null && drawer === DRAWER_NAME;
+        const justClosed =
+            prevDrawer.current === DRAWER_NAME && drawer === null;
+
+        // on drawer toggle, read filter state from location
         if (justOpened || justClosed) {
             const nextState = getStateFromSearch(
                 search,
@@ -84,22 +176,14 @@ export const useFilterModal = props => {
 
             filterApi.setItems(nextState);
         }
+
+        // on drawer close, update the modal visibility state
+        if (justClosed) {
+            handleClose();
+        }
+
         prevDrawer.current = drawer;
-    }, [drawer, filterApi, filterKeys, filterItems, search]);
-
-    const handleApply = useCallback(() => {
-        setIsApplying(true);
-        closeDrawer();
-    }, [closeDrawer, setIsApplying]);
-
-    const handleClose = useCallback(() => {
-        closeDrawer();
-    }, [closeDrawer]);
-
-    const handleReset = useCallback(() => {
-        filterApi.clear();
-        setIsApplying(true);
-    }, [filterApi, setIsApplying]);
+    }, [drawer, filterApi, filterItems, filterKeys, search, handleClose]);
 
     return {
         filterApi,
@@ -109,6 +193,8 @@ export const useFilterModal = props => {
         filterState,
         handleApply,
         handleClose,
+        handleKeyDownActions,
+        handleOpen,
         handleReset,
         isApplying,
         isOpen

@@ -1,16 +1,14 @@
 import React, { useCallback, useMemo } from 'react';
-import { bool, func, number, oneOfType, shape, string } from 'prop-types';
+import { func, number, oneOfType, shape, string } from 'prop-types';
 import setValidator from '@magento/peregrine/lib/validators/set';
 
 import FilterDefault from './filterDefault';
-import Swatch from '../../ProductOptions/swatch';
 
 const FilterItem = props => {
-    const { filterApi, filterState, group, isSwatch, item } = props;
+    const { filterApi, filterState, group, item, isExpanded, onApply } = props;
     const { toggleItem } = filterApi;
     const { title, value } = item;
     const isSelected = filterState && filterState.has(item);
-    const Tile = isSwatch ? Swatch : FilterDefault;
 
     // create and memoize an item that matches the tile interface
     const tileItem = useMemo(
@@ -23,11 +21,16 @@ const FilterItem = props => {
 
     const handleClick = useCallback(() => {
         toggleItem({ group, item });
-    }, [group, item, toggleItem]);
+
+        if (typeof onApply === 'function') {
+            onApply(group, item);
+        }
+    }, [group, item, toggleItem, onApply]);
 
     return (
-        <Tile
+        <FilterDefault
             isSelected={isSelected}
+            isExpanded={isExpanded}
             item={tileItem}
             onClick={handleClick}
             title={title}
@@ -36,7 +39,9 @@ const FilterItem = props => {
     );
 };
 
-export default FilterItem;
+FilterItem.defaultProps = {
+    onChange: null
+};
 
 FilterItem.propTypes = {
     filterApi: shape({
@@ -44,9 +49,11 @@ FilterItem.propTypes = {
     }).isRequired,
     filterState: setValidator,
     group: string.isRequired,
-    isSwatch: bool,
     item: shape({
         title: string.isRequired,
         value: oneOfType([number, string]).isRequired
-    }).isRequired
+    }).isRequired,
+    onChange: func
 };
+
+export default FilterItem;

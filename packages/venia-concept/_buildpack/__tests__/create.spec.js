@@ -12,6 +12,7 @@ const {
     makeCommonTasks,
     makeCopyStream
 } = require('@magento/pwa-buildpack/lib/Utilities/createProject');
+const sampleBackends = require('@magento/pwa-buildpack/sampleBackends.json');
 const createVenia = require('../create');
 
 const mockFs = data => {
@@ -42,23 +43,31 @@ const mockFs = data => {
     return fs;
 };
 
-const runCreate = (fs, options) => {
-    const { visitor } = createVenia({
+const runCreate = async (fs, opts) => {
+    const options = {
+        ...opts,
+        directory: '/target'
+    };
+    const { after, before, visitor } = await createVenia({
         fs,
         tasks: makeCommonTasks(fs),
-        options
+        options,
+        sampleBackends
     });
-    return makeCopyStream({
+    if (before) {
+        await before({ options });
+    }
+    await makeCopyStream({
         fs,
-        options: {
-            ...options,
-            directory: '/target'
-        },
+        options,
         visitor,
         packageRoot: '/repo/packages/me',
         directory: '/project',
         ignores: []
     });
+    if (after) {
+        await after({ options });
+    }
 };
 
 test('copies files and writes new file structure, ignoring ignores', async () => {
@@ -66,7 +75,10 @@ test('copies files and writes new file structure, ignoring ignores', async () =>
         '/repo/packages/me/src/index.js': 'alert("index")',
         '/repo/packages/me/src/components/Fake/Fake.js': 'alert("fake")',
         '/repo/packages/me/src/components/Fake/Fake.css': '#fake {}',
-        '/repo/packages/me/CHANGELOG.md': '#markdown'
+        '/repo/packages/me/CHANGELOG.md': '#markdown',
+        '/repo/packages/me/.graphqlconfig': JSON.stringify({
+            projects: { venia: { 'venia-options': true } }
+        })
     });
     await runCreate(fs, {
         name: 'whee',
@@ -83,6 +95,13 @@ test('copies files and writes new file structure, ignoring ignores', async () =>
         fs.readFileSync('/project/src/components/Fake/Fake.css', 'utf8')
     ).toBe('#fake {}');
     expect(() => fs.readFileSync('/project/CHANGELOG.md', 'utf8')).toThrow();
+    expect(fs.readJsonSync('/project/.graphqlconfig')).toMatchObject({
+        projects: {
+            whee: {
+                'venia-options': true
+            }
+        }
+    });
 });
 
 test('outputs custom package.json', async () => {
@@ -94,7 +113,7 @@ test('outputs custom package.json', async () => {
             },
             scripts: {
                 'do-not-copy': 'this',
-                test: 'yarn run do test this'
+                watch: 'yarn run do watch this'
             }
         })
     });
@@ -115,7 +134,7 @@ test('outputs npm package.json', async () => {
             },
             scripts: {
                 'do-not-copy': 'this',
-                test: 'yarn run do test this'
+                watch: 'yarn run do watch this'
             }
         })
     });
@@ -156,12 +175,22 @@ test.skip('outputs package-lock or yarn.lock based on npmClient', async () => {
     });
 });
 
-test('forces yarn client, local deps, and console debugging if DEBUG_PROJECT_CREATION is set', async () => {
+describe('when DEBUG_PROJECT_CREATION is set', () => {
     const old = process.env.DEBUG_PROJECT_CREATION;
-    process.env.DEBUG_PROJECT_CREATION = 1;
+    const mockWorkspaceResponse = JSON.stringify({
+        foo: { location: '/repo/packages/me' },
+        '@magento/create-pwa': { location: 'packages/create-pwa' },
+        '@magento/pwa-buildpack': { location: 'packages/pwa-buildpack' },
+        '@magento/peregrine': { location: 'packages/peregrine' },
+        '@magento/venia-ui': { location: 'packages/venia-ui' }
+    });
 
-    const files = {
-        '/repo/packages/me/package.json': JSON.stringify({
+    let fs;
+    let pkg;
+
+    beforeEach(() => {
+        process.env.DEBUG_PROJECT_CREATION = 1;
+        pkg = {
             name: 'foo',
             author: 'bar',
             dependencies: {
@@ -174,30 +203,90 @@ test('forces yarn client, local deps, and console debugging if DEBUG_PROJECT_CRE
             optionalDependencies: {
                 'no-package': '0.0.1'
             }
-        }),
-        '/repo/packages/me/package-lock.json': '{ "for": "npm" }',
-        '/repo/packages/me/yarn.lock': '{ "for": "yarn" }',
-        [resolve(packagesRoot, 'venia-ui/package.json')]: JSON.stringify({
-            name: '@magento/venia-ui'
-        }),
-        [resolve(packagesRoot, 'peregrine/package.json')]: JSON.stringify({
-            name: '@magento/peregrine'
-        }),
-        [resolve(packagesRoot, 'bad-package/package.json')]: 'bad json',
-        [resolve(packagesRoot, 'some-file.txt')]: 'not a package'
-    };
-
-    const fs = mockFs(files);
-
-    await runCreate(fs, {
-        name: 'foo',
-        author: 'bar',
-        npmClient: 'npm'
+        };
+        fs = mockFs({
+            '/repo/packages/me/package.json': JSON.stringify(pkg),
+            '/repo/packages/me/package-lock.json': '{ "for": "npm" }',
+            '/repo/packages/me/yarn.lock': '{ "for": "yarn" }',
+            [resolve(packagesRoot, 'venia-ui/package.json')]: JSON.stringify({
+                name: '@magento/venia-ui'
+            }),
+            [resolve(packagesRoot, 'peregrine/package.json')]: JSON.stringify({
+                name: '@magento/peregrine'
+            }),
+            [resolve(
+                packagesRoot,
+                'pwa-buildpack/package.json'
+            )]: JSON.stringify({
+                name: '@magento/pwa-buildpack'
+            })
+        });
     });
-    expect(
-        fs.readJsonSync('/project/package.json').resolutions[
-            '@magento/peregrine'
-        ]
-    ).toMatch(/^file/);
-    process.env.DEBUG_PROJECT_CREATION = old;
+
+    afterEach(() => {
+        process.env.DEBUG_PROJECT_CREATION = old;
+    });
+
+    test('forces yarn client, local deps, and console debugging if DEBUG_PROJECT_CREATION is set', async () => {
+        // mock the yarn workspaces response
+        execSync.mockReturnValueOnce(mockWorkspaceResponse);
+
+        await runCreate(fs, {
+            name: 'foo',
+            author: 'bar',
+            npmClient: 'npm'
+        });
+
+        const packageJSON = fs.readJsonSync('/project/package.json');
+
+        expect(packageJSON.dependencies['@magento/pwa-buildpack']).toMatch(
+            /^file/
+        );
+        expect(packageJSON.dependencies['@magento/create-pwa']).toBeUndefined();
+        expect(packageJSON.resolutions['@magento/peregrine']).toMatch(/^file/);
+    });
+
+    test('handles unexpected child process responses', async () => {
+        execSync.mockReturnValueOnce('bad { json');
+        await expect(
+            runCreate(fs, { name: 'foo', author: 'bar', npmClient: 'yarn' })
+        ).rejects.toThrowError('workspaces');
+
+        execSync
+            .mockReturnValueOnce(mockWorkspaceResponse)
+            .mockReturnValueOnce('very bad { json');
+        await expect(
+            runCreate(fs, { name: 'foo', author: 'bar', npmClient: 'yarn' })
+        ).rejects.toThrowError('pack');
+    });
+
+    test('handles missing scripts section or zero overrides', async () => {
+        delete pkg.scripts;
+        fs.outputJsonSync('/repo/packages/me/package.json', pkg, 'utf8');
+        await expect(
+            runCreate(fs, { name: 'foo', author: 'bar', npmClient: 'yarn' })
+        ).rejects.toThrow('scripts');
+    });
+
+    test('does not log or overwrite if there are zero overrides', async () => {
+        execSync.mockReturnValueOnce('{}'); // yarn prints zero workspaces
+        await expect(
+            runCreate(fs, { name: 'foo', author: 'bar', npmClient: 'yarn' })
+        ).resolves.not.toThrow();
+        expect(fs.readJsonSync('/project/package.json')).not.toHaveProperty(
+            'resolutions'
+        );
+    });
+
+    test('works with modern versions of NPM that spit out the tarball name', async () => {
+        // Arrange.
+        execSync
+            .mockReturnValueOnce(mockWorkspaceResponse)
+            .mockReturnValueOnce('unit_test.tgz');
+
+        // Act & Assert.
+        await expect(
+            runCreate(fs, { name: 'foo', author: 'bar', npmClient: 'yarn' })
+        ).resolves.not.toThrow();
+    });
 });

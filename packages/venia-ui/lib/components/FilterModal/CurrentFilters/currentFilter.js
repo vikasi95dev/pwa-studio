@@ -1,35 +1,54 @@
 import React, { useCallback } from 'react';
-import { shape, string } from 'prop-types';
+import { useIntl } from 'react-intl';
+import { shape, string, func } from 'prop-types';
 import { X as Remove } from 'react-feather';
 
-import { mergeClasses } from '../../../classify';
+import { useStyle } from '../../../classify';
 import Icon from '../../Icon';
 import Trigger from '../../Trigger';
 import defaultClasses from './currentFilter.css';
 
 const CurrentFilter = props => {
-    const { group, groupName, item, removeItem } = props;
-    const text = `${groupName}: ${item.title}`;
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const { group, item, removeItem, onRemove } = props;
+    const classes = useStyle(defaultClasses, props.classes);
+    const { formatMessage } = useIntl();
 
     const handleClick = useCallback(() => {
         removeItem({ group, item });
-    }, [group, item, removeItem]);
+        if (typeof onRemove === 'function') {
+            onRemove(group, item);
+        }
+    }, [group, item, removeItem, onRemove]);
+
+    const ariaLabel = formatMessage(
+        {
+            id: 'filterModal.action.clearFilterItem.ariaLabel',
+            defaultMessage: 'Clear filter'
+        },
+        {
+            name: item.title
+        }
+    );
 
     return (
         <span className={classes.root}>
-            <span className={classes.text}>{text}</span>
-            <Trigger action={handleClick}>
-                <Icon className={classes.icon} size={16} src={Remove} />
+            <Trigger action={handleClick} ariaLabel={ariaLabel}>
+                <Icon size={20} src={Remove} />
             </Trigger>
+            <span className={classes.text}>{item.title}</span>
         </span>
     );
 };
 
 export default CurrentFilter;
 
+CurrentFilter.defaultProps = {
+    onRemove: null
+};
+
 CurrentFilter.propTypes = {
     classes: shape({
         root: string
-    })
+    }),
+    onRemove: func
 };

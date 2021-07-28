@@ -8,7 +8,7 @@ import {
 import { transparentPlaceholder } from '@magento/peregrine/lib/util/images';
 import { useProductImageCarousel } from '@magento/peregrine/lib/talons/ProductImageCarousel/useProductImageCarousel';
 
-import { mergeClasses } from '../../classify';
+import { useStyle } from '../../classify';
 import Icon from '../Icon';
 import Image from '../Image';
 import defaultClasses from './carousel.css';
@@ -33,7 +33,8 @@ const ProductImageCarousel = props => {
     const { images } = props;
 
     const talonProps = useProductImageCarousel({
-        images
+        images,
+        imageWidth: IMAGE_WIDTH
     });
 
     const {
@@ -61,7 +62,7 @@ const ProductImageCarousel = props => {
         [activeItemIndex, handleThumbnailClick, sortedImages]
     );
 
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const classes = useStyle(defaultClasses, props.classes);
 
     let image;
     if (currentImage.file) {
@@ -89,18 +90,32 @@ const ProductImageCarousel = props => {
         );
     }
 
+    const chevronClasses = { root: classes.chevron };
     return (
         <div className={classes.root}>
             <div className={classes.carouselContainer}>
                 <button
                     className={classes.previousButton}
                     onClick={handlePrevious}
+                    type="button"
                 >
-                    <Icon src={ChevronLeftIcon} size={40} />
+                    <Icon
+                        classes={chevronClasses}
+                        src={ChevronLeftIcon}
+                        size={40}
+                    />
                 </button>
                 {image}
-                <button className={classes.nextButton} onClick={handleNext}>
-                    <Icon src={ChevronRightIcon} size={40} />
+                <button
+                    className={classes.nextButton}
+                    onClick={handleNext}
+                    type="button"
+                >
+                    <Icon
+                        classes={chevronClasses}
+                        src={ChevronRightIcon}
+                        size={40}
+                    />
                 </button>
             </div>
             <div className={classes.thumbnailList}>{thumbnails}</div>

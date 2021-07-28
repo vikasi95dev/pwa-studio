@@ -1,13 +1,18 @@
 import { useCallback, useState, useMemo } from 'react';
+import { useIntl } from 'react-intl';
+import { useMutation, useQuery } from '@apollo/client';
 import { useCartContext } from '@magento/peregrine/lib/context/cart';
+import { useUserContext } from '@magento/peregrine/lib/context/user';
 
 import { appendOptionsToPayload } from '@magento/peregrine/lib/util/appendOptionsToPayload';
 import { findMatchingVariant } from '@magento/peregrine/lib/util/findMatchingProductVariant';
 import { isProductConfigurable } from '@magento/peregrine/lib/util/isProductConfigurable';
+import { deriveErrorMessage } from '../../util/deriveErrorMessage';
+import mergeOperations from '../../util/shallowMerge';
+import defaultOperations from './productFullDetail.gql';
 
 const INITIAL_OPTION_CODES = new Map();
 const INITIAL_OPTION_SELECTIONS = new Map();
-const INITIAL_QUANTITY = 1;
 
 const deriveOptionCodesFromProduct = product => {
     // If this is a simple product it has no option codes.
@@ -94,6 +99,10 @@ const getMediaGalleryEntries = (product, optionCodes, optionSelections) => {
 // product has multiple related categories. This function filters and selects
 // one category id for that purpose.
 const getBreadcrumbCategoryId = categories => {
+    // Exit if there are no categories for this product.
+    if (!categories || !categories.length) {
+        return;
+    }
     const breadcrumbSet = new Set();
     categories.forEach(({ breadcrumbs }) => {
         // breadcrumbs can be `null`...
@@ -113,12 +122,107 @@ const getBreadcrumbCategoryId = categories => {
     return leafCategory.id || categories[0].id;
 };
 
+const getConfigPrice = (product, optionCodes, optionSelections) => {
+    let value;
+
+    const { variants } = product;
+    const isConfigurable = isProductConfigurable(product);
+
+    const optionsSelected =
+        Array.from(optionSelections.values()).filter(value => !!value).length >
+        0;
+
+    if (!isConfigurable || !optionsSelected) {
+        value = product.price.regularPrice.amount;
+    } else {
+        const item = findMatchingVariant({
+            optionCodes,
+            optionSelections,
+            variants
+        });
+
+        value = item
+            ? item.product.price.regularPrice.amount
+            : product.price.regularPrice.amount;
+    }
+
+    return value;
+};
+
+const SUPPORTED_PRODUCT_TYPES = ['SimpleProduct', 'ConfigurableProduct'];
+
+/**
+ * @param {GraphQLDocument} props.addConfigurableProductToCartMutation - configurable product mutation
+ * @param {GraphQLDocument} props.addSimpleProductToCartMutation - configurable product mutation
+ * @param {Object.<string, GraphQLDocument>} props.operations - collection of operation overrides merged into defaults
+ * @param {Object} props.product - the product, see RootComponents/Product
+ *
+ * @returns {{
+ *  breadcrumbCategoryId: string|undefined,
+ *  errorMessage: string|undefined,
+ *  handleAddToCart: func,
+ *  handleSelectionChange: func,
+ *  handleSetQuantity: func,
+ *  isAddToCartDisabled: boolean,
+ *  isSupportedProductType: boolean,
+ *  mediaGalleryEntries: array,
+ *  productDetails: object,
+ *  quantity: number
+ * }}
+ */
 export const useProductFullDetail = props => {
-    const { product } = props;
+    const {
+        addConfigurableProductToCartMutation,
+        addSimpleProductToCartMutation,
+        product
+    } = props;
 
-    const [{ isAddingItem }, { addItemToCart }] = useCartContext();
+    const hasDeprecatedOperationProp = !!(
+        addConfigurableProductToCartMutation || addSimpleProductToCartMutation
+    );
 
-    const [quantity, setQuantity] = useState(INITIAL_QUANTITY);
+    const operations = mergeOperations(defaultOperations, props.operations);
+
+    const productType = product.__typename;
+
+    const isSupportedProductType = SUPPORTED_PRODUCT_TYPES.includes(
+        productType
+    );
+
+    const [{ cartId }] = useCartContext();
+    const [{ isSignedIn }] = useUserContext();
+    const { formatMessage } = useIntl();
+
+    const { data: storeConfigData } = useQuery(
+        operations.getWishlistConfigQuery,
+        {
+            fetchPolicy: 'cache-and-network'
+        }
+    );
+
+    const [
+        addConfigurableProductToCart,
+        {
+            error: errorAddingConfigurableProduct,
+            loading: isAddConfigurableLoading
+        }
+    ] = useMutation(
+        addConfigurableProductToCartMutation ||
+            operations.addConfigurableProductToCartMutation
+    );
+
+    const [
+        addSimpleProductToCart,
+        { error: errorAddingSimpleProduct, loading: isAddSimpleLoading }
+    ] = useMutation(
+        addSimpleProductToCartMutation ||
+            operations.addSimpleProductToCartMutation
+    );
+
+    const [
+        addProductToCart,
+        { error: errorAddingProductToCart, loading: isAddProductLoading }
+    ] = useMutation(operations.addProductToCartMutation);
 
     const breadcrumbCategoryId = useMemo(
         () => getBreadcrumbCategoryId(product.categories),
@@ -149,19 +253,126 @@ export const useProductFullDetail = props => {
         [product, optionCodes, optionSelections]
     );
 
-    const handleAddToCart = useCallback(() => {
-        const payload = {
-            item: product,
-            productType: product.__typename,
-            quantity
-        };
-
-        if (isProductConfigurable(product)) {
-            appendOptionsToPayload(payload, optionSelections, optionCodes);
+    // The map of ids to values (and their uids)
+    // For example:
+    // { "179" => [{ uid: "abc", value_index: 1 }, { uid: "def", value_index: 2 }]}
+    const attributeIdToValuesMap = useMemo(() => {
+        const map = new Map();
+        // For simple items, this will be an empty map.
+        const options = product.configurable_options || [];
+        for (const { attribute_id, values } of options) {
+            map.set(attribute_id, values);
         }
+        return map;
+    }, [product.configurable_options]);
 
-        addItemToCart(payload);
-    }, [addItemToCart, optionCodes, optionSelections, product, quantity]);
+    // An array of selected option uids. Useful for passing to mutations.
+    // For example:
+    // ["abc", "def"]
+    const selectedOptionsArray = useMemo(() => {
+        const selectedOptions = [];
+
+        optionSelections.forEach((value, key) => {
+            const values = attributeIdToValuesMap.get(key);
+
+            const selectedValue = values.find(
+                item => item.value_index === value
+            );
+
+            if (selectedValue) {
+                selectedOptions.push(selectedValue.uid);
+            }
+        });
+        return selectedOptions;
+    }, [attributeIdToValuesMap, optionSelections]);
+
+    const handleAddToCart = useCallback(
+        async formValues => {
+            const { quantity } = formValues;
+
+            /*
+                @deprecated in favor of general addProductsToCart mutation. Will support until the next MAJOR.
+             */
+            if (hasDeprecatedOperationProp) {
+                const payload = {
+                    item: product,
+                    productType,
+                    quantity
+                };
+
+                if (isProductConfigurable(product)) {
+                    appendOptionsToPayload(
+                        payload,
+                        optionSelections,
+                        optionCodes
+                    );
+                }
+
+                if (isSupportedProductType) {
+                    const variables = {
+                        cartId,
+                        parentSku: payload.parentSku,
+                        product: payload.item,
+                        quantity: payload.quantity,
+                        sku: payload.item.sku
+                    };
+                    // Use the proper mutation for the type.
+                    if (productType === 'SimpleProduct') {
+                        try {
+                            await addSimpleProductToCart({
+                                variables
+                            });
+                        } catch {
+                            return;
+                        }
+                    } else if (productType === 'ConfigurableProduct') {
+                        try {
+                            await addConfigurableProductToCart({
+                                variables
+                            });
+                        } catch {
+                            return;
+                        }
+                    }
+                } else {
+                    console.error(
+                        'Unsupported product type. Cannot add to cart.'
+                    );
+                }
+            } else {
+                const variables = {
+                    cartId,
+                    product: {
+                        sku: product.sku,
+                        quantity
+                    }
+                };
+
+                if (selectedOptionsArray.length) {
+                    variables.product.selected_options = selectedOptionsArray;
+                }
+
+                try {
+                    await addProductToCart({ variables });
+                } catch {
+                    return;
+                }
+            }
+        },
+        [
+            addConfigurableProductToCart,
+            addProductToCart,
+            addSimpleProductToCart,
+            cartId,
+            hasDeprecatedOperationProp,
+            isSupportedProductType,
+            optionCodes,
+            optionSelections,
+            product,
+            productType,
+            selectedOptionsArray
+        ]
+    );
 
     const handleSelectionChange = useCallback(
         (optionId, selection) => {
@@ -174,29 +385,79 @@ export const useProductFullDetail = props => {
         [optionSelections]
     );
 
-    const handleSetQuantity = useCallback(
-        value => {
-            setQuantity(value);
-        },
-        [setQuantity]
+    const productPrice = useMemo(
+        () => getConfigPrice(product, optionCodes, optionSelections),
+        [product, optionCodes, optionSelections]
     );
 
     // Normalization object for product details we need for rendering.
     const productDetails = {
         description: product.description,
         name: product.name,
-        price: product.price.regularPrice.amount,
+        price: productPrice,
         sku: product.sku
+    };
+
+    const derivedErrorMessage = useMemo(
+        () =>
+            deriveErrorMessage([
+                errorAddingSimpleProduct,
+                errorAddingConfigurableProduct,
+                errorAddingProductToCart
+            ]),
+        [
+            errorAddingConfigurableProduct,
+            errorAddingProductToCart,
+            errorAddingSimpleProduct
+        ]
+    );
+
+    const wishlistItemOptions = useMemo(() => {
+        const options = {
+            quantity: 1,
+            sku: product.sku
+        };
+
+        if (productType === 'ConfigurableProduct') {
+            options.selected_options = selectedOptionsArray;
+        }
+
+        return options;
+    }, [product, productType, selectedOptionsArray]);
+
+    const wishlistButtonProps = {
+        buttonText: isSelected =>
+            isSelected
+                ? formatMessage({
+                      id: 'wishlistButton.addedText',
+                      defaultMessage: 'Added to Favorites'
+                  })
+                : formatMessage({
+                      id: 'wishlistButton.addText',
+                      defaultMessage: 'Add to Favorites'
+                  }),
+        item: wishlistItemOptions,
+        storeConfig: storeConfigData ? storeConfigData.storeConfig : {}
     };
 
     return {
         breadcrumbCategoryId,
+        errorMessage: derivedErrorMessage,
         handleAddToCart,
         handleSelectionChange,
-        handleSetQuantity,
-        isAddToCartDisabled: isAddingItem || isMissingOptions,
+        isAddToCartDisabled:
+            isMissingOptions ||
+            isAddConfigurableLoading ||
+            isAddSimpleLoading ||
+            isAddProductLoading,
+        isSupportedProductType,
         mediaGalleryEntries,
+        shouldShowWishlistButton:
+            isSignedIn &&
+            storeConfigData &&
+            !!storeConfigData.storeConfig.magento_wishlist_general_is_enabled,
         productDetails,
-        quantity
+        wishlistButtonProps,
+        wishlistItemOptions
     };
 };

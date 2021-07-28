@@ -1,11 +1,14 @@
 import React, { Fragment, useMemo } from 'react';
+import { FormattedMessage } from 'react-intl';
 import { number, string } from 'prop-types';
-import { Link, resourceUrl } from '@magento/venia-drivers';
-import { mergeClasses } from '../../classify';
-import defaultClasses from './breadcrumbs.css';
-import { useBreadcrumbs } from '../../../../peregrine/lib/talons/Breadcrumbs/useBreadcrumbs';
-import GET_BREADCRUMB_DATA from '../../queries/getBreadcrumbData.graphql';
+import { Link } from 'react-router-dom';
 
+import { useBreadcrumbs } from '@magento/peregrine/lib/talons/Breadcrumbs/useBreadcrumbs';
+import resourceUrl from '@magento/peregrine/lib/util/makeUrl';
+import { useStyle } from '../../classify';
+import defaultClasses from './breadcrumbs.css';
+
+const DELIMITER = '/';
 /**
  * Breadcrumbs! Generates a sorted display of category links.
  *
@@ -13,14 +16,11 @@ import GET_BREADCRUMB_DATA from '../../queries/getBreadcrumbData.graphql';
  * @param {String} props.currentProduct the name of the product we're currently on, if any.
  */
 const Breadcrumbs = props => {
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const classes = useStyle(defaultClasses, props.classes);
 
     const { categoryId, currentProduct } = props;
 
-    const talonProps = useBreadcrumbs({
-        categoryId,
-        query: GET_BREADCRUMB_DATA
-    });
+    const talonProps = useBreadcrumbs({ categoryId });
 
     const {
         currentCategory,
@@ -35,7 +35,7 @@ const Breadcrumbs = props => {
         return normalizedData.map(({ text, path }) => {
             return (
                 <Fragment key={text}>
-                    <span className={classes.divider}>/</span>
+                    <span className={classes.divider}>{DELIMITER}</span>
                     <Link className={classes.link} to={resourceUrl(path)}>
                         {text}
                     </Link>
@@ -63,7 +63,7 @@ const Breadcrumbs = props => {
 
     const currentProductNode = currentProduct ? (
         <Fragment>
-            <span className={classes.divider}>/</span>
+            <span className={classes.divider}>{DELIMITER}</span>
             <span className={classes.text}>{currentProduct}</span>
         </Fragment>
     ) : null;
@@ -71,10 +71,10 @@ const Breadcrumbs = props => {
     return (
         <div className={classes.root}>
             <Link className={classes.link} to="/">
-                {'Home'}
+                <FormattedMessage id={'global.home'} defaultMessage={'Home'} />
             </Link>
             {links}
-            <span className={classes.divider}>/</span>
+            <span className={classes.divider}>{DELIMITER}</span>
             {currentCategoryLink}
             {currentProductNode}
         </div>

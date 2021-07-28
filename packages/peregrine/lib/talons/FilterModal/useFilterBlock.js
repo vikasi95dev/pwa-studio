@@ -1,11 +1,19 @@
-import { useCallback, useState } from 'react';
-
-const getFilterType = id => (id === 'fashion_color' ? 'SWATCH' : 'DEFAULT');
+import { useCallback, useState, useEffect, useMemo } from 'react';
 
 export const useFilterBlock = props => {
-    const { group } = props;
-    const isSwatch = getFilterType(group) === 'SWATCH';
-    const [isExpanded, setExpanded] = useState(false);
+    const { filterState, items, initialOpen } = props;
+
+    const hasSelected = useMemo(() => {
+        return items.some(item => {
+            return filterState && filterState.has(item);
+        });
+    }, [filterState, items]);
+
+    const [isExpanded, setExpanded] = useState(hasSelected || initialOpen);
+
+    useEffect(() => {
+        setExpanded(hasSelected || initialOpen);
+    }, [hasSelected, initialOpen]);
 
     const handleClick = useCallback(() => {
         setExpanded(value => !value);
@@ -13,7 +21,6 @@ export const useFilterBlock = props => {
 
     return {
         handleClick,
-        isExpanded,
-        isSwatch
+        isExpanded
     };
 };

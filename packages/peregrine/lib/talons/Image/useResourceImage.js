@@ -12,29 +12,27 @@ import { UNCONSTRAINED_SIZE_KEY } from './useImage';
  * @param {string}  props.type - The Magento image type ("image-category" / "image-product"). Used to build the resource URL.
  * @param {number}  props.width - The width to request for the fallback image for browsers that don't support srcset / sizes.
  * @param {Map}     props.widths - The map of breakpoints to possible widths used to create the img's sizes attribute.
+ * @param {number}   props.ratio is the image width to height ratio. Defaults to 4/5.
  */
 export const useResourceImage = props => {
     const {
         generateSrcset,
+        generateUrl,
         height,
         resource,
-        resourceUrl,
         type,
         width,
-        widths
+        widths,
+        ratio
     } = props;
 
     const src = useMemo(() => {
-        return resourceUrl(resource, {
-            type,
-            height: height,
-            width: width
-        });
-    }, [height, resource, resourceUrl, type, width]);
+        return generateUrl(resource, type)(width, height);
+    }, [generateUrl, height, resource, type, width]);
 
     const srcSet = useMemo(() => {
-        return generateSrcset(resource, type);
-    }, [generateSrcset, resource, type]);
+        return generateSrcset(resource, type, ratio);
+    }, [generateSrcset, resource, type, ratio]);
 
     // Example: 100px
     // Example: (max-width: 640px) 50px, 100px

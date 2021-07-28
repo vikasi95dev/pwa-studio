@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { FormattedMessage } from 'react-intl';
 import {
     arrayOf,
     func,
@@ -9,7 +10,7 @@ import {
     string
 } from 'prop-types';
 
-import { mergeClasses } from '../../classify';
+import { useStyle } from '../../classify';
 import getOptionType from './getOptionType';
 import SwatchList from './swatchList';
 import TileList from './tileList';
@@ -47,7 +48,6 @@ const Option = props => {
     const {
         handleSelectionChange,
         initialSelection,
-        selectedValueLabel,
         selectedValueDescription
     } = talonProps;
 
@@ -56,7 +56,7 @@ const Option = props => {
         values
     ]);
 
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const classes = useStyle(defaultClasses, props.classes);
 
     return (
         <div className={classes.root}>
@@ -70,7 +70,13 @@ const Option = props => {
                 onSelectionChange={handleSelectionChange}
             />
             <dl className={classes.selection}>
-                <dt className={classes.selectionLabel}>{selectedValueLabel}</dt>
+                <dt className={classes.selectionLabel}>
+                    <FormattedMessage
+                        id="productOptions.selectedLabel"
+                        defaultMessage={`Selected ${label}:`}
+                        values={{ label }}
+                    />
+                </dt>
                 <dd>{selectedValueDescription}</dd>
             </dl>
         </div>

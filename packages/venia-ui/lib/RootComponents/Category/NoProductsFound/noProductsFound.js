@@ -1,25 +1,30 @@
 import React, { useMemo } from 'react';
 import { number, string, shape } from 'prop-types';
-
-import { Link, resourceUrl } from '@magento/venia-drivers';
+import { FormattedMessage, useIntl } from 'react-intl';
+import { Link } from 'react-router-dom';
 import { useNoProductsFound } from '@magento/peregrine/lib/talons/RootComponents/Category';
+import resourceUrl from '@magento/peregrine/lib/util/makeUrl';
 
 import Image from '../../../components/Image';
-import { mergeClasses } from '../../../classify';
+import { useStyle } from '../../../classify';
 import noProductsFound from './noProductsFound.png';
 import defaultClasses from './noProductsFound.css';
 
-// TODO: get categoryUrlSuffix from graphql storeOptions when it is ready
-const categoryUrlSuffix = '.html';
-
 const NoProductsFound = props => {
-    const { recommendedCategories } = useNoProductsFound(props);
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const { categoryId } = props;
+    const classes = useStyle(defaultClasses, props.classes);
+
+    const { formatMessage } = useIntl();
+    const talonProps = useNoProductsFound({
+        categoryId
+    });
+
+    const { recommendedCategories } = talonProps;
 
     const categoryItems = useMemo(() => {
         return recommendedCategories.map(category => {
             const uri = resourceUrl(
-                `/${category.url_path}${categoryUrlSuffix}`
+                `/${category.url_path}${category.url_suffix}`
             );
 
             return (
@@ -30,18 +35,26 @@ const NoProductsFound = props => {
         });
     }, [classes, recommendedCategories]);
 
+    const headerText = formatMessage({
+        id: 'noProductsFound.noProductsFound',
+        defaultMessage: "Sorry! We couldn't find any products."
+    });
+
     return (
         <div className={classes.root}>
             <Image
-                alt="Sorry! There are no products in this category."
+                alt={headerText}
                 classes={{ image: classes.image, root: classes.imageContainer }}
                 src={noProductsFound}
             />
-            <h2 className={classes.title}>
-                Sorry! There are no products in this category
-            </h2>
+            <h2 className={classes.title}>{headerText}</h2>
             <div className={classes.categories}>
-                <p>Try one of these categories</p>
+                <p>
+                    <FormattedMessage
+                        id={'noProductsFound.tryOneOfTheseCategories'}
+                        defaultMessage={'Try one of these categories'}
+                    />
+                </p>
                 <ul className={classes.list}>{categoryItems}</ul>
             </div>
         </div>

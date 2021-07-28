@@ -1,14 +1,9 @@
-.root {
-    padding: 1rem;
+:root {
+    --search-sidebar-width: 325px;
 }
 
-.categoryTop {
-    display: flex;
-    flex-wrap: wrap;
-    padding: 0 0 1rem 0;
-    color: rgb(var(--venia-text-alt));
-    justify-content: center;
-    align-items: center;
+.root {
+    padding: 1rem;
 }
 
 .noResult {
@@ -17,18 +12,64 @@
 
 .headerButtons {
     display: flex;
-    justify-content: center;
     flex-basis: 100%;
-    padding-top: 0.5rem;
+    justify-content: center;
+    margin: 1rem 0;
 }
 
-.filterButton {
-    padding: 0.5rem;
+.heading {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.searchInfo {
+    line-height: var(--venia-global-typography-heading-lineHeight);
+    margin: 2.5rem 0 1rem;
+    max-width: 75vw;
+}
+
+.totalPages {
     margin-left: 0.5rem;
-    margin-right: 0.5rem;
-    width: 9rem;
-    border: 1px solid black;
-    border-radius: 100px;
-    color: black;
-    outline: none;
+}
+
+.headingHighlight {
+    font-weight: var(--venia-global-fontWeight-bold);
+}
+
+.sidebar {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .root {
+        display: flex;
+        flex-wrap: nowrap;
+    }
+
+    .heading {
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .searchInfo {
+        margin: 0;
+        flex-basis: 100%;
+    }
+
+    .headerButtons {
+        justify-content: flex-end;
+    }
+
+    .sidebar {
+        display: flex;
+        align-self: flex-start;
+        width: var(--search-sidebar-width);
+        padding-top: 4rem;
+    }
+
+    .searchContent {
+        flex-grow: 1;
+    }
 }

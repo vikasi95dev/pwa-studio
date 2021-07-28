@@ -209,6 +209,13 @@ test('supplies a dev-mode IOAdapter with webpack fs integration', async () => {
         expect.stringMatching(/cFile$/),
         'utf8'
     );
+    const fsFail = () => {
+        throw new Error('Nope, FS failed');
+    };
+    compiler.inputFileSystem.readFileSync.mockImplementationOnce(fsFail);
+    compiler.outputFileSystem.readFileSync.mockImplementationOnce(fsFail);
+    defaultIO.readFile.mockImplementationOnce(fsFail);
+    await expect(io.readFile('./missing-file', 'utf8')).rejects.toThrow();
 });
 
 test('dev-mode IOAdapter uses fetch', async () => {
@@ -222,6 +229,7 @@ test('dev-mode IOAdapter uses fetch', async () => {
     const plugin = new UpwardDevServerPlugin(devServer, process.env);
     plugin.apply({});
     devServer.after(app);
+
     const handler = app.use.mock.calls[0][0];
     handler();
     await plugin.middlewarePromise;
@@ -250,6 +258,7 @@ test('dev-mode IOAdapter can fetch unsecure URLs', async () => {
     const plugin = new UpwardDevServerPlugin(devServer, process.env);
     plugin.apply({});
     devServer.after(app);
+
     const handler = app.use.mock.calls[0][0];
     handler();
     await plugin.middlewarePromise;

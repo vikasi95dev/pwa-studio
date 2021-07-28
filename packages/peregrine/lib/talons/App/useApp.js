@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import { useHistory } from 'react-router-dom';
+
 import errorRecord from '@magento/peregrine/lib/util/createErrorRecord';
 import { useAppContext } from '@magento/peregrine/lib/context/app';
 
@@ -33,36 +35,29 @@ export const useApp = props => {
         handleError,
         handleIsOffline,
         handleIsOnline,
-        handleHTMLUpdate,
         markErrorHandled,
         renderError,
         unhandledErrors
     } = props;
+    const history = useHistory();
 
-    const [isHTMLUpdateAvailable, setHTMLUpdateAvailable] = useState(false);
-
-    const resetHTMLUpdateAvaialable = useCallback(
-        () => setHTMLUpdateAvailable(false),
-        [setHTMLUpdateAvailable]
-    );
-
-    const reload = useCallback(
-        process.env.NODE_ENV === 'development'
-            ? () => {
-                  console.log(
-                      'Default window.location.reload() error handler not running in developer mode.'
-                  );
-              }
-            : () => {
-                  window.location.reload();
-              },
-        []
-    );
+    const reload = useCallback(() => {
+        if (process.env.NODE_ENV !== 'development') {
+            history.go(0);
+        }
+    }, [history]);
 
     const renderErrors = useMemo(
         () =>
             renderError
-                ? [errorRecord(renderError, window, useApp, renderError.stack)]
+                ? [
+                      errorRecord(
+                          renderError,
+                          globalThis,
+                          useApp,
+                          renderError.stack
+                      )
+                  ]
                 : [],
         [renderError]
     );
@@ -98,19 +93,12 @@ export const useApp = props => {
         }
     }, [handleIsOnline, handleIsOffline, hasBeenOffline, isOnline]);
 
-    useEffect(() => {
-        if (isHTMLUpdateAvailable) {
-            handleHTMLUpdate(resetHTMLUpdateAvaialable);
-        }
-    }, [isHTMLUpdateAvailable, handleHTMLUpdate, resetHTMLUpdateAvaialable]);
-
     const handleCloseDrawer = useCallback(() => {
         closeDrawer();
     }, [closeDrawer]);
 
     return {
         hasOverlay: !!overlay,
-        handleCloseDrawer,
-        setHTMLUpdateAvailable
+        handleCloseDrawer
     };
 };

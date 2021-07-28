@@ -24,21 +24,20 @@ exports[`renders if \`items\` is an array of objects 1`] = `
         <img
           alt="Test Product 1"
           className="image loaded"
-          height={375}
           loading="lazy"
           onError={[MockFunction]}
           onLoad={[MockFunction]}
           sizes="(max-width: 640px) 300px, 840px"
-          src="a.url"
-          srcSet="a.url 40w,
-a.url 80w,
-a.url 160w,
-a.url 320w,
-a.url 640w,
-a.url 960w,
-a.url 1280w,
-a.url 1600w,
-a.url 2560w"
+          src="/test/product/1.png"
+          srcSet="/test/product/1.png 40w,
+/test/product/1.png 80w,
+/test/product/1.png 160w,
+/test/product/1.png 320w,
+/test/product/1.png 640w,
+/test/product/1.png 960w,
+/test/product/1.png 1280w,
+/test/product/1.png 1600w,
+/test/product/1.png 2560w"
           width={100}
         />
       </div>
@@ -48,8 +47,22 @@ a.url 2560w"
       <div
         className="price"
       >
-        <div />
+        <span>
+          $
+        </span>
+        <span>
+          100
+        </span>
+        <span>
+          .
+        </span>
+        <span>
+          00
+        </span>
       </div>
+      <div
+        className="actionsContainer"
+      />
     </div>
     <div
       className="root"
@@ -68,21 +81,20 @@ a.url 2560w"
         <img
           alt="Test Product 2"
           className="image loaded"
-          height={375}
           loading="lazy"
           onError={[MockFunction]}
           onLoad={[MockFunction]}
           sizes="(max-width: 640px) 300px, 840px"
-          src="a.url"
-          srcSet="a.url 40w,
-a.url 80w,
-a.url 160w,
-a.url 320w,
-a.url 640w,
-a.url 960w,
-a.url 1280w,
-a.url 1600w,
-a.url 2560w"
+          src="/test/product/2.png"
+          srcSet="/test/product/2.png 40w,
+/test/product/2.png 80w,
+/test/product/2.png 160w,
+/test/product/2.png 320w,
+/test/product/2.png 640w,
+/test/product/2.png 960w,
+/test/product/2.png 1280w,
+/test/product/2.png 1600w,
+/test/product/2.png 2560w"
           width={100}
         />
       </div>
@@ -92,8 +104,22 @@ a.url 2560w"
       <div
         className="price"
       >
-        <div />
+        <span>
+          $
+        </span>
+        <span>
+          100
+        </span>
+        <span>
+          .
+        </span>
+        <span>
+          00
+        </span>
       </div>
+      <div
+        className="actionsContainer"
+      />
     </div>
   </div>
 </div>

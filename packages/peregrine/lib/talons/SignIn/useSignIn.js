@@ -1,93 +1,152 @@
-import { useCallback, useRef, useState } from 'react';
-import { useUserContext } from '../../context/user';
-import { useMutation } from '@apollo/react-hooks';
+import { useCallback, useRef, useState, useMemo } from 'react';
+import { useApolloClient, useMutation } from '@apollo/client';
+
+import { clearCartDataFromCache } from '../../Apollo/clearCartDataFromCache';
+import { clearCustomerDataFromCache } from '../../Apollo/clearCustomerDataFromCache';
+import mergeOperations from '../../util/shallowMerge';
 import { useCartContext } from '../../context/cart';
+import { useUserContext } from '../../context/user';
+import { useAwaitQuery } from '../../hooks/useAwaitQuery';
+import { retrieveCartId } from '../../store/actions/cart';
+
+import DEFAULT_OPERATIONS from './signIn.gql';
 
 export const useSignIn = props => {
     const {
+        getCartDetailsQuery,
         setDefaultUsername,
         showCreateAccount,
-        showForgotPassword,
-        query
+        showForgotPassword
     } = props;
 
+    const operations = mergeOperations(DEFAULT_OPERATIONS, props.operations);
+    const {
+        createCartMutation,
+        getCustomerQuery,
+        mergeCartsMutation,
+        signInMutation
+    } = operations;
+
+    const apolloClient = useApolloClient();
     const [isSigningIn, setIsSigningIn] = useState(false);
 
-    const [, { getCartDetails, removeCart }] = useCartContext();
+    const [
+        { cartId },
+        { createCart, removeCart, getCartDetails }
+    ] = useCartContext();
+
     const [
         { isGettingDetails, getDetailsError },
         { getUserDetails, setToken }
     ] = useUserContext();
 
-    const [signIn, { error: signInError }] = useMutation(query);
+    const [signIn, { error: signInError }] = useMutation(signInMutation, {
+        fetchPolicy: 'no-cache'
+    });
 
-    const errors = [];
-    if (signInError) {
-        errors.push(signInError.graphQLErrors[0]);
-    }
-    if (getDetailsError) {
-        errors.push(getDetailsError);
-    }
+    const [fetchCartId] = useMutation(createCartMutation);
+    const [mergeCarts] = useMutation(mergeCartsMutation);
+    const fetchUserDetails = useAwaitQuery(getCustomerQuery);
+    const fetchCartDetails = useAwaitQuery(getCartDetailsQuery);
 
-    const formRef = useRef(null);
+    const formApiRef = useRef(null);
+    const setFormApi = useCallback(api => (formApiRef.current = api), []);
 
     const handleSubmit = useCallback(
         async ({ email, password }) => {
             setIsSigningIn(true);
             try {
-                // Sign in and save the token
-                const response = await signIn({
+                // Get source cart id (guest cart id).
+                const sourceCartId = cartId;
+
+                // Sign in and set the token.
+                const signInResponse = await signIn({
                     variables: { email, password }
                 });
+                const token = signInResponse.data.generateCustomerToken.token;
+                await setToken(token);
 
-                const token =
-                    response && response.data.generateCustomerToken.token;
-
-                setToken(token);
-
-                // Then get user details
-                await getUserDetails();
-
-                // Then reset the cart
+                // Clear all cart/customer data from cache and redux.
+                await clearCartDataFromCache(apolloClient);
+                await clearCustomerDataFromCache(apolloClient);
                 await removeCart();
-                await getCartDetails({ forceRefresh: true });
+
+                // Create and get the customer's cart id.
+                await createCart({
+                    fetchCartId
+                });
+                const destinationCartId = await retrieveCartId();
+
+                // Merge the guest cart into the customer cart.
+                await mergeCarts({
+                    variables: {
+                        destinationCartId,
+                        sourceCartId
+                    }
+                });
+
+                // Ensure old stores are updated with any new data.
+                getUserDetails({ fetchUserDetails });
+                getCartDetails({ fetchCartId, fetchCartDetails });
             } catch (error) {
-                if (process.env.NODE_ENV === 'development') {
+                if (process.env.NODE_ENV !== 'production') {
                     console.error(error);
                 }
 
                 setIsSigningIn(false);
             }
         },
-        [getCartDetails, getUserDetails, removeCart, setToken, signIn]
+        [
+            cartId,
+            apolloClient,
+            removeCart,
+            signIn,
+            setToken,
+            createCart,
+            fetchCartId,
+            mergeCarts,
+            getUserDetails,
+            fetchUserDetails,
+            getCartDetails,
+            fetchCartDetails
+        ]
     );
 
     const handleForgotPassword = useCallback(() => {
-        const { current: form } = formRef;
+        const { current: formApi } = formApiRef;
 
-        if (form) {
-            setDefaultUsername(form.formApi.getValue('email'));
+        if (formApi) {
+            setDefaultUsername(formApi.getValue('email'));
         }
 
         showForgotPassword();
     }, [setDefaultUsername, showForgotPassword]);
 
     const handleCreateAccount = useCallback(() => {
-        const { current: form } = formRef;
+        const { current: formApi } = formApiRef;
 
-        if (form) {
-            setDefaultUsername(form.formApi.getValue('email'));
+        if (formApi) {
+            setDefaultUsername(formApi.getValue('email'));
         }
 
         showCreateAccount();
     }, [setDefaultUsername, showCreateAccount]);
 
+    const errors = useMemo(
+        () =>
+            new Map([
+                ['getUserDetailsQuery', getDetailsError],
+                ['signInMutation', signInError]
+            ]),
+        [getDetailsError, signInError]
+    );
+
     return {
         errors,
-        formRef,
         handleCreateAccount,
         handleForgotPassword,
         handleSubmit,
-        isBusy: isGettingDetails || isSigningIn
+        isBusy: isGettingDetails || isSigningIn,
+        setFormApi
     };
 };

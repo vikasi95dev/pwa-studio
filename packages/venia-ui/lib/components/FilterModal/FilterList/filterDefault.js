@@ -1,24 +1,54 @@
 import React from 'react';
+import { useIntl } from 'react-intl';
 import { bool, shape, string } from 'prop-types';
-import { Check as Checkmark } from 'react-feather';
 
-import { mergeClasses } from '../../../classify';
-import Icon from '../../Icon';
+import Checkbox from '../../Checkbox';
+import { useStyle } from '../../../classify';
 import defaultClasses from './filterDefault.css';
 
 const FilterDefault = props => {
-    const { classes: propsClasses, isSelected, item, ...restProps } = props;
-    const { label } = item || {};
-    const classes = mergeClasses(defaultClasses, propsClasses);
-    const iconClassName = isSelected ? classes.iconActive : classes.icon;
+    const {
+        classes: propsClasses,
+        isSelected,
+        item,
+        isExpanded,
+        ...restProps
+    } = props;
+
+    const { label, value_index } = item || {};
+    const classes = useStyle(defaultClasses, propsClasses);
+    const { formatMessage } = useIntl();
+
+    const ariaLabel = !isSelected
+        ? formatMessage(
+              {
+                  id: 'filterModal.item.applyFilter',
+                  defaultMessage: 'Apply filter'
+              },
+              {
+                  optionName: label
+              }
+          )
+        : formatMessage(
+              {
+                  id: 'filterModal.item.clearFilter',
+                  defaultMessage: 'Remove filter'
+              },
+              {
+                  optionName: label
+              }
+          );
 
     return (
-        <button className={classes.root} {...restProps}>
-            <span className={iconClassName}>
-                {isSelected && <Icon src={Checkmark} size={14} />}
-            </span>
-            <span>{label}</span>
-        </button>
+        <Checkbox
+            classes={classes}
+            field={`${label}-${value_index}`}
+            fieldValue={!!isSelected}
+            disabled={!isExpanded}
+            label={label}
+            ariaLabel={ariaLabel}
+            {...restProps}
+        />
     );
 };
 
@@ -28,12 +58,14 @@ FilterDefault.propTypes = {
     classes: shape({
         root: string,
         icon: string,
-        iconActive: string
+        label: string,
+        checked: string
     }),
     group: string,
     isSelected: bool,
     item: shape({
-        label: string
-    }),
+        label: string.isRequired,
+        value_index: string.isRequired
+    }).isRequired,
     label: string
 };

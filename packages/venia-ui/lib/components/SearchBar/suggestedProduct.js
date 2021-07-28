@@ -1,18 +1,18 @@
 import React, { useCallback, useMemo } from 'react';
 import { func, number, shape, string } from 'prop-types';
-import { Price } from '@magento/peregrine';
-import { mergeClasses } from '../../classify';
-import { Link, resourceUrl } from '@magento/venia-drivers';
+import { Link } from 'react-router-dom';
+import resourceUrl from '@magento/peregrine/lib/util/makeUrl';
+import Price from '@magento/venia-ui/lib/components/Price';
+import { useStyle } from '../../classify';
 
 import Image from '../Image';
 import defaultClasses from './suggestedProduct.css';
 
-const PRODUCT_URL_SUFFIX = '.html';
 const IMAGE_WIDTH = 60;
 
 const SuggestedProduct = props => {
-    const classes = mergeClasses(defaultClasses, props.classes);
-    const { url_key, small_image, name, onNavigate, price } = props;
+    const classes = useStyle(defaultClasses, props.classes);
+    const { url_key, small_image, name, onNavigate, price, url_suffix } = props;
 
     const handleClick = useCallback(() => {
         if (typeof onNavigate === 'function') {
@@ -20,8 +20,9 @@ const SuggestedProduct = props => {
         }
     }, [onNavigate]);
 
-    const uri = useMemo(() => resourceUrl(`/${url_key}${PRODUCT_URL_SUFFIX}`), [
-        url_key
+    const uri = useMemo(() => resourceUrl(`/${url_key}${url_suffix || ''}`), [
+        url_key,
+        url_suffix
     ]);
 
     return (

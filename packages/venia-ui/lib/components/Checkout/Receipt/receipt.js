@@ -1,10 +1,11 @@
 import React, { Fragment } from 'react';
 import { func, shape, string } from 'prop-types';
 
-import { mergeClasses } from '../../../classify';
+import { useReceipt } from '@magento/peregrine/lib/talons/Checkout/Receipt/useReceipt';
+
+import { useStyle } from '../../../classify';
 import Button from '../../Button';
 import defaultClasses from './receipt.css';
-import { useReceipt } from '@magento/peregrine/lib/talons/Checkout/Receipt/useReceipt';
 
 /**
  * A component that displays some basic information about an order and has
@@ -12,7 +13,9 @@ import { useReceipt } from '@magento/peregrine/lib/talons/Checkout/Receipt/useRe
  */
 const Receipt = props => {
     const { onClose } = props;
-    const talonProps = useReceipt({ onClose });
+    const talonProps = useReceipt({
+        onClose
+    });
 
     const {
         handleCreateAccount,
@@ -20,38 +23,42 @@ const Receipt = props => {
         isSignedIn
     } = talonProps;
 
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const classes = useStyle(defaultClasses, props.classes);
+
+    const createAccountButtonText = 'Create an Account';
+    const viewOrderButtonText = 'View Order Details';
+
+    const ctaText = isSignedIn
+        ? 'You can also visit your account page for more information.'
+        : 'Track order status and earn rewards for your purchase by creating an account.';
+
+    const content = isSignedIn ? (
+        <Fragment>
+            <div className={classes.textBlock}>{ctaText}</div>
+            <Button onClick={handleViewOrderDetails}>
+                {viewOrderButtonText}
+            </Button>
+        </Fragment>
+    ) : (
+        <Fragment>
+            <hr />
+            <div className={classes.textBlock}>{ctaText}</div>
+            <Button priority="high" onClick={handleCreateAccount}>
+                {createAccountButtonText}
+            </Button>
+        </Fragment>
+    );
+
+    const headingText = 'Thank you for your purchase!';
+    const orderConfText =
+        'You will receive an order confirmation email with order status and other details.';
 
     return (
         <div className={classes.root}>
             <div className={classes.body}>
-                <h2 className={classes.header}>Thank you for your purchase!</h2>
-                <div className={classes.textBlock}>
-                    You will receive an order confirmation email with order
-                    status and other details.
-                </div>
-                {isSignedIn ? (
-                    <Fragment>
-                        <div className={classes.textBlock}>
-                            You can also visit your account page for more
-                            information.
-                        </div>
-                        <Button onClick={handleViewOrderDetails}>
-                            View Order Details
-                        </Button>
-                    </Fragment>
-                ) : (
-                    <Fragment>
-                        <hr />
-                        <div className={classes.textBlock}>
-                            Track order status and earn rewards for your
-                            purchase by creating an account.
-                        </div>
-                        <Button priority="high" onClick={handleCreateAccount}>
-                            Create an Account
-                        </Button>
-                    </Fragment>
-                )}
+                <h2 className={classes.header}>{headingText}</h2>
+                <div className={classes.textBlock}>{orderConfText}</div>
+                {content}
             </div>
         </div>
     );

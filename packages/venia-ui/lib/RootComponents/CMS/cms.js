@@ -1,48 +1,76 @@
-import React from 'react';
-import { useQuery } from '@apollo/react-hooks';
-import cmsPageQuery from '../../queries/getCmsPage.graphql';
+import React, { Fragment } from 'react';
+import { number, shape, string } from 'prop-types';
 import { fullPageLoadingIndicator } from '../../components/LoadingIndicator';
+import { useCmsPage } from '@magento/peregrine/lib/talons/Cms/useCmsPage';
 import RichContent from '../../components/RichContent';
-import { number } from 'prop-types';
 import CategoryList from '../../components/CategoryList';
+import { Meta, StoreTitle } from '../../components/Head';
+import { useStyle } from '../../classify';
+import { useIntl } from 'react-intl';
+
+import defaultClasses from './cms.css';
 
 const CMSPage = props => {
     const { id } = props;
-    const { loading, error, data } = useQuery(cmsPageQuery, {
-        variables: {
-            id: Number(id),
-            onServer: false
-        }
-    });
 
-    if (error) {
-        if (process.env.NODE_ENV !== 'production') {
-            console.error(error);
-        }
-        return <div>Page Fetch Error</div>;
-    }
+    const talonProps = useCmsPage({ id });
+    const {
+        cmsPage,
+        hasContent,
+        rootCategoryId,
+        shouldShowLoadingIndicator
+    } = talonProps;
+    const { formatMessage } = useIntl();
+    const classes = useStyle(defaultClasses, props.classes);
 
-    if (loading) {
+    if (shouldShowLoadingIndicator) {
         return fullPageLoadingIndicator;
     }
 
-    if (data) {
-        // Only render <RichContent /> if the page isn't empty and doesn't contain the default CMS Page text.
-        if (
-            data.cmsPage.content &&
-            data.cmsPage.content.length > 0 &&
-            !data.cmsPage.content.includes('CMS homepage content goes here.')
-        ) {
-            return <RichContent html={data.cmsPage.content} />;
-        }
+    if (hasContent) {
+        const {
+            content_heading,
+            title,
+            meta_title,
+            meta_description,
+            content
+        } = cmsPage;
 
-        return <CategoryList title="Shop by category" id={2} />;
+        const headingElement =
+            content_heading !== '' ? (
+                <h1 className={classes.heading}>{content_heading}</h1>
+            ) : null;
+
+        const pageTitle = meta_title || title;
+
+        return (
+            <Fragment>
+                <StoreTitle>{pageTitle}</StoreTitle>
+                <Meta name="title" content={pageTitle} />
+                <Meta name="description" content={meta_description} />
+                {headingElement}
+                <RichContent html={content} />
+            </Fragment>
+        );
     }
-    return null;
+
+    // Fallback to a category list if there is no cms content.
+    return (
+        <CategoryList
+            title={formatMessage({
+                id: 'cms.shopByCategory',
+                defaultMessage: 'Shop by category'
+            })}
+            id={rootCategoryId}
+        />
+    );
 };
 
 CMSPage.propTypes = {
-    id: number
+    id: number,
+    classes: shape({
+        heading: string
+    })
 };
 
 export default CMSPage;

@@ -1,76 +1,64 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, Suspense } from 'react';
+import { useIntl } from 'react-intl';
 import { array, func, shape, string } from 'prop-types';
 
 import { useToasts } from '@magento/peregrine';
 import { useApp } from '@magento/peregrine/lib/talons/App/useApp';
 
-import { HeadProvider, Title } from '../Head';
+import globalCSS from '../../index.css';
+import { HeadProvider, StoreTitle } from '../Head';
 import Main from '../Main';
 import Mask from '../Mask';
-import MiniCart from '../MiniCart';
-import Navigation from '../Navigation';
 import Routes from '../Routes';
-import { registerMessageHandler } from '../../util/swUtils';
-import { HTML_UPDATE_AVAILABLE } from '../../constants/swMessageTypes';
 import ToastContainer from '../ToastContainer';
 import Icon from '../Icon';
 
 import {
     AlertCircle as AlertCircleIcon,
     CloudOff as CloudOffIcon,
-    Wifi as WifiIcon,
-    RefreshCcw as RefreshIcon
+    Wifi as WifiIcon
 } from 'react-feather';
+
+const Navigation = React.lazy(() => import('../Navigation'));
 
 const OnlineIcon = <Icon src={WifiIcon} attrs={{ width: 18 }} />;
 const OfflineIcon = <Icon src={CloudOffIcon} attrs={{ width: 18 }} />;
 const ErrorIcon = <Icon src={AlertCircleIcon} attrs={{ width: 18 }} />;
-const UpdateIcon = <Icon src={RefreshIcon} attrs={{ width: 18 }} />;
-
-const ERROR_MESSAGE = 'Sorry! An unexpected error occurred.';
 
 const App = props => {
     const { markErrorHandled, renderError, unhandledErrors } = props;
-
+    const { formatMessage } = useIntl();
     const [, { addToast }] = useToasts();
+
+    const ERROR_MESSAGE = formatMessage({
+        id: 'app.errorUnexpected',
+        defaultMessage: 'Sorry! An unexpected error occurred.'
+    });
 
     const handleIsOffline = useCallback(() => {
         addToast({
             type: 'error',
             icon: OfflineIcon,
-            message: 'You are offline. Some features may be unavailable.',
+            message: formatMessage({
+                id: 'app.errorOffline',
+                defaultMessage:
+                    'You are offline. Some features may be unavailable.'
+            }),
             timeout: 3000
         });
-    }, [addToast]);
+    }, [addToast, formatMessage]);
 
     const handleIsOnline = useCallback(() => {
         addToast({
             type: 'info',
             icon: OnlineIcon,
-            message: 'You are online.',
+            message: formatMessage({
+                id: 'app.infoOnline',
+                defaultMessage: 'You are online.'
+            }),
             timeout: 3000
         });
-    }, [addToast]);
-
-    const handleHTMLUpdate = useCallback(
-        resetHTMLUpdateAvaiableFlag => {
-            addToast({
-                type: 'warning',
-                icon: UpdateIcon,
-                message: 'Update available. Please refresh.',
-                actionText: 'Refresh',
-                timeout: 0,
-                onAction: () => {
-                    location.reload();
-                },
-                onDismiss: removeToast => {
-                    resetHTMLUpdateAvaiableFlag();
-                    removeToast();
-                }
-            });
-        },
-        [addToast]
-    );
+    }, [addToast, formatMessage]);
 
     const handleError = useCallback(
         (error, id, loc, handleDismissError) => {
@@ -87,39 +75,24 @@ const App = props => {
 
             addToast(errorToastProps);
         },
-        [addToast]
+        [ERROR_MESSAGE, addToast]
     );
 
     const talonProps = useApp({
         handleError,
         handleIsOffline,
         handleIsOnline,
-        handleHTMLUpdate,
         markErrorHandled,
         renderError,
         unhandledErrors
     });
 
-    const {
-        hasOverlay,
-        handleCloseDrawer,
-        setHTMLUpdateAvailable
-    } = talonProps;
-
-    useEffect(() => {
-        const unregisterHandler = registerMessageHandler(
-            HTML_UPDATE_AVAILABLE,
-            () => {
-                setHTMLUpdateAvailable(true);
-            }
-        );
-        return unregisterHandler;
-    }, [setHTMLUpdateAvailable]);
+    const { hasOverlay, handleCloseDrawer } = talonProps;
 
     if (renderError) {
         return (
             <HeadProvider>
-                <Title>{`Home Page - ${STORE_NAME}`}</Title>
+                <StoreTitle />
                 <Main isMasked={true} />
                 <Mask isActive={true} />
                 <ToastContainer />
@@ -129,13 +102,14 @@ const App = props => {
 
     return (
         <HeadProvider>
-            <Title>{`Home Page - ${STORE_NAME}`}</Title>
+            <StoreTitle />
             <Main isMasked={hasOverlay}>
                 <Routes />
             </Main>
             <Mask isActive={hasOverlay} dismiss={handleCloseDrawer} />
-            <Navigation />
-            <MiniCart />
+            <Suspense fallback={null}>
+                <Navigation />
+            </Suspense>
             <ToastContainer />
         </HeadProvider>
     );
@@ -148,5 +122,7 @@ App.propTypes = {
     }),
     unhandledErrors: array
 };
+
+App.globalCSS = globalCSS;
 
 export default App;

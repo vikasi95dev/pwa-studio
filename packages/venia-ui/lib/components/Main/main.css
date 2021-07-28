@@ -1,6 +1,6 @@
 .root {
-    background-color: rgb(var(--venia-background-color));
-    color: rgb(var(--venia-text));
+    background-color: rgb(var(--venia-global-color-background));
+    color: rgb(var(--venia-global-color-text));
     position: relative;
     z-index: 1;
 }
@@ -10,9 +10,29 @@
 }
 
 .page {
-    min-height: 100vh;
+    margin: 0 auto;
+    max-width: var(--venia-global-maxWidth);
+    min-height: 40rem;
 }
 
 .page_masked {
     composes: page;
+}
+
+@media (min-height: 640px) {
+    .page {
+        min-height: 48rem;
+    }
+}
+
+@media (min-height: 768px) {
+    .page {
+        min-height: 60rem;
+    }
+}
+
+@media (min-height: 960px) {
+    .page {
+        min-height: 72rem;
+    }
 }

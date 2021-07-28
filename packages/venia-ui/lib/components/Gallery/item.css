@@ -1,10 +1,12 @@
 .root {
+    align-content: start;
+    display: grid;
+    row-gap: 0.5rem;
 }
 
 .images {
     display: grid;
     grid-template-areas: 'main';
-    margin-bottom: 0.65rem;
 }
 
 .imageContainer {
@@ -13,7 +15,8 @@
 
 .image {
     display: block;
-    height: auto;
+    height: 100%;
+    object-fit: contain;
     opacity: 1;
     transition-duration: 512ms;
     transition-property: opacity, visibility;
@@ -24,14 +27,26 @@
 
 .imagePlaceholder {
     composes: image;
-    background-color: rgb(var(--venia-grey));
+    background-color: rgb(var(--venia-global-color-gray));
+}
+
+.actionsContainer {
+    column-gap: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.actionsContainer:empty {
+    display: none;
+}
+
+.name {
+    font-weight: var(--venia-global-fontWeight-semibold);
 }
 
 .name,
 .price {
-    font-size: 0.875rem;
-    line-height: 1rem;
-    margin: 0.5rem 0;
+    font-size: var(--venia-typography-detail-XL-fontSize);
     min-height: 1rem;
 }
 
@@ -43,7 +58,7 @@
 
 .image_pending {
     composes: image;
-    background-color: rgb(var(--venia-grey));
+    background-color: rgb(var(--venia-global-color-gray));
 }
 
 .images_pending {
@@ -52,11 +67,11 @@
 
 .name_pending {
     composes: name;
-    background-color: rgb(var(--venia-grey));
+    background-color: rgb(var(--venia-global-color-gray));
 }
 
 .price_pending {
     composes: price;
-    background-color: rgb(var(--venia-grey));
+    background-color: rgb(var(--venia-global-color-gray));
     width: 3rem;
 }

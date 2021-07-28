@@ -1,21 +1,54 @@
-jest.mock('fs');
+jest.mock('pertain');
 jest.mock('pkg-dir');
 jest.mock('webpack-assets-manifest');
 jest.mock('../../Utilities/loadEnvironment');
 jest.mock('../plugins/RootComponentsPlugin');
 jest.mock('../PWADevServer');
 
+jest.mock('../../BuildBus/declare-base');
+
+const path = require('path');
 const fs = require('fs');
+const stat = jest.spyOn(fs, 'stat');
+
+const { SyncHook } = require('tapable');
+const declareBase = require('../../BuildBus/declare-base');
+const pertain = require('pertain');
 const pkgDir = require('pkg-dir');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const RootComponentsPlugin = require('../plugins/RootComponentsPlugin');
 const loadEnvironment = require('../../Utilities/loadEnvironment');
 const configureWebpack = require('../configureWebpack');
+const BuildBus = require('../../BuildBus');
 
+pertain.mockImplementation((_, subject) => [
+    {
+        name: '@magento/pwa-buildpack',
+        path: `./${subject.split('.').pop()}-base`
+    }
+]);
 pkgDir.mockImplementation(x => x);
 
+const specialFeaturesHook = new SyncHook(['special']);
+const envVarDefsHook = new SyncHook(['envVarDefs']);
+const transformModulesHook = new SyncHook(['addTransform']);
+declareBase.mockImplementation(targets => {
+    targets.declare({
+        envVarDefinitions: envVarDefsHook,
+        specialFeatures: specialFeaturesHook,
+        webpackCompiler: new SyncHook(['compiler']),
+        transformModules: transformModulesHook
+    });
+});
+
+beforeEach(() => {
+    pertain.mockClear();
+    declareBase.mockClear();
+    BuildBus.clearAll();
+});
+
 const mockStat = (dir, file, err = null) => {
-    fs.stat.mockImplementationOnce((_, callback) =>
+    stat.mockImplementationOnce((_, callback) =>
         callback(err, { isDirectory: () => dir, isFile: () => file })
     );
 };
@@ -74,7 +107,7 @@ test('produces a webpack config and friendly manifest plugin', async () => {
         .statsAsDirectory()
         .statsAsFile()
         .productionEnvironment();
-    const { clientConfig: config } = await configureWebpack({ context: '.' });
+    const config = await configureWebpack({ context: '.' });
     expect(config).toMatchObject({
         context: '.',
         mode: 'production',
@@ -122,7 +155,7 @@ test('works in developer mode from cli', async () => {
         .statsAsDirectory()
         .statsAsMissing()
         .productionEnvironment();
-    const { clientConfig } = await configureWebpack({
+    const clientConfig = await configureWebpack({
         context: '.',
         env: { mode: 'development' }
     });
@@ -135,7 +168,7 @@ test('works in developer mode from fallback', async () => {
         .statsAsDirectory()
         .statsAsMissing()
         .devEnvironment();
-    const { clientConfig } = await configureWebpack({ context: '.' });
+    const clientConfig = await configureWebpack({ context: '.' });
 
     expect(clientConfig).toHaveProperty('mode', 'development');
 });
@@ -168,35 +201,67 @@ test('handles special flags', async () => {
         .statsAsFile()
         .productionEnvironment();
 
-    const { clientConfig } = await configureWebpack({
-        context: '.',
-        vendor: ['jest'],
-        special: {
-            jest: {
-                esModules: true,
-                cssModules: true,
-                graphqlQueries: true,
-                rootComponents: true,
-                upward: true
-            },
-            'pkg-dir': {
-                esModules: true,
-                cssModules: true,
-                graphqlQueries: true,
-                rootComponents: false,
-                upward: true
-            }
+    const special = {
+        localModule1: {
+            esModules: true,
+            cssModules: true,
+            graphqlQueries: true,
+            rootComponents: true,
+            upward: true
+        },
+        depModule1: {
+            esModules: true,
+            cssModules: true,
+            graphqlQueries: true,
+            rootComponents: false,
+            upward: true
         }
+    };
+
+    // Tapable detects the argument length of the tap provided, so we need to
+    // declare at least one argument or Tapable won't give us anything.
+    const specialFeaturesTap = jest.fn(x => x);
+    specialFeaturesHook.tap('configureWebpack.spec.js', specialFeaturesTap);
+    const clientConfig = await configureWebpack({
+        context: path.resolve(__dirname, '__fixtures__/resolverContext'),
+        vendor: ['jest'],
+        special
     });
-    expect(
-        clientConfig.module.rules.find(({ use }) =>
-            use.some(({ loader }) => /^graphql\-tag/.test(loader))
-        ).include
-    ).toHaveLength(3);
+
+    const gqlLoader = ({ use }) =>
+        use.some(({ loader }) => /^graphql\-tag/.test(loader));
+    expect(clientConfig.module.rules.find(gqlLoader).include).toHaveLength(3);
+
     expect(RootComponentsPlugin).toHaveBeenCalled();
     expect(
         RootComponentsPlugin.mock.calls[0][0].rootComponentsDirs.some(entry =>
-            entry.includes('jest')
+            entry.includes('localModule1')
         )
     ).toBeTruthy();
+    expect(declareBase).toHaveBeenCalledTimes(1);
+    expect(specialFeaturesTap).toHaveBeenCalledWith(special);
+});
+
+test('accepts aliases', async () => {
+    simulate
+        .statsAsDirectory()
+        .statsAsFile()
+        .productionEnvironment();
+
+    await expect(
+        configureWebpack({
+            context: path.resolve(__dirname, '__fixtures__/resolverContext'),
+            alias: {
+                garner: 'bristow',
+                cooper: 'tippin'
+            }
+        })
+    ).resolves.toMatchObject({
+        resolve: {
+            alias: {
+                garner: 'bristow',
+                cooper: 'tippin'
+            }
+        }
+    });
 });

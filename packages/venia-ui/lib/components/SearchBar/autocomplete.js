@@ -1,26 +1,118 @@
 import React from 'react';
+import { gql } from '@apollo/client';
 import { bool, func, shape, string } from 'prop-types';
 import { useAutocomplete } from '@magento/peregrine/lib/talons/SearchBar';
+import { useIntl } from 'react-intl';
 
-import { mergeClasses } from '../../classify';
-import PRODUCT_SEARCH from '../../queries/productSearch.graphql';
-import Suggestions from './suggestions';
 import defaultClasses from './autocomplete.css';
+import { useStyle } from '../../classify';
+import Suggestions from './suggestions';
 
-const MESSAGES = new Map()
-    .set('ERROR', 'An error occurred while fetching results.')
-    .set('LOADING', 'Fetching results...')
-    .set('PROMPT', 'Search for a product')
-    .set('EMPTY_RESULT', 'No results were found.')
-    .set('RESULT_SUMMARY', (_, resultCount) => `${resultCount} items`);
+const GET_AUTOCOMPLETE_RESULTS = gql`
+    query getAutocompleteResults($inputText: String!) {
+        # Limit results to first three.
+        products(search: $inputText, currentPage: 1, pageSize: 3) {
+            aggregations {
+                label
+                count
+                attribute_code
+                options {
+                    label
+                    value
+                }
+            }
+            items {
+                id
+                name
+                small_image {
+                    url
+                }
+                url_key
+                url_suffix
+                price {
+                    regularPrice {
+                        amount {
+                            value
+                            currency
+                        }
+                    }
+                }
+            }
+            page_info {
+                total_pages
+            }
+            total_count
+        }
+    }
+`;
 
 const Autocomplete = props => {
-    const { setVisible, visible } = props;
-    const talonProps = useAutocomplete({ query: PRODUCT_SEARCH, visible });
-    const { messageType, products, resultCount, value } = talonProps;
+    const { setVisible, valid, visible } = props;
+    const talonProps = useAutocomplete({
+        queries: {
+            getAutocompleteResults: GET_AUTOCOMPLETE_RESULTS
+        },
+        valid,
+        visible
+    });
+    const {
+        displayResult,
+        filters,
+        messageType,
+        products,
+        resultCount,
+        value
+    } = talonProps;
 
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const classes = useStyle(defaultClasses, props.classes);
     const rootClassName = visible ? classes.root_visible : classes.root_hidden;
+
+    const { formatMessage } = useIntl();
+    const MESSAGES = new Map()
+        .set(
+            'ERROR',
+            formatMessage({
+                id: 'autocomplete.error',
+                defaultMessage: 'An error occurred while fetching results.'
+            })
+        )
+        .set(
+            'LOADING',
+            formatMessage({
+                id: 'autocomplete.loading',
+                defaultMessage: 'Fetching results...'
+            })
+        )
+        .set(
+            'PROMPT',
+            formatMessage({
+                id: 'autocomplete.prompt',
+                defaultMessage: 'Search for a product'
+            })
+        )
+        .set(
+            'EMPTY_RESULT',
+            formatMessage({
+                id: 'autocomplete.emptyResult',
+                defaultMessage: 'No results were found.'
+            })
+        )
+        .set('RESULT_SUMMARY', (_, resultCount) =>
+            formatMessage(
+                {
+                    id: 'autocomplete.resultSummary',
+                    defaultMessage: '{resultCount} items'
+                },
+                { resultCount: resultCount }
+            )
+        )
+        .set(
+            'INVALID_CHARACTER_LENGTH',
+            formatMessage({
+                id: 'autocomplete.invalidCharacterLength',
+                defaultMessage: 'Search term must be at least three characters'
+            })
+        );
 
     const messageTpl = MESSAGES.get(messageType);
     const message =
@@ -33,7 +125,9 @@ const Autocomplete = props => {
             <div className={classes.message}>{message}</div>
             <div className={classes.suggestions}>
                 <Suggestions
+                    displayResult={displayResult}
                     products={products || {}}
+                    filters={filters}
                     searchValue={value}
                     setVisible={setVisible}
                     visible={visible}

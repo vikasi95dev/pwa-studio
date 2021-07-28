@@ -1,7 +1,7 @@
 import React from 'react';
 import { bool, func, number, oneOfType, shape, string } from 'prop-types';
 
-import { mergeClasses } from '../../classify';
+import { useStyle } from '../../classify';
 import defaultClasses from './tile.css';
 import { useTile } from '@magento/peregrine/lib/talons/ProductOptions/useTile';
 
@@ -23,11 +23,16 @@ const Tile = props => {
 
     const { handleClick } = talonProps;
 
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const classes = useStyle(defaultClasses, props.classes);
     const className = classes[getClassName('root', isSelected, hasFocus)];
 
     return (
-        <button onClick={handleClick} title={label} className={className}>
+        <button
+            className={className}
+            onClick={handleClick}
+            title={label}
+            type="button"
+        >
             <span>{label}</span>
         </button>
     );

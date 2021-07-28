@@ -1,11 +1,14 @@
 import React, { useMemo } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
+import { FocusScope } from 'react-aria';
 import { array, arrayOf, shape, string } from 'prop-types';
 import { X as CloseIcon } from 'react-feather';
 import { useFilterModal } from '@magento/peregrine/lib/talons/FilterModal';
 
-import { mergeClasses } from '../../classify';
+import { useStyle } from '../../classify';
 import Icon from '../Icon';
-import { Modal } from '../Modal';
+import LinkButton from '../LinkButton';
+import { Portal } from '../Portal';
 import CurrentFilters from './CurrentFilters';
 import FilterBlock from './filterBlock';
 import FilterFooter from './filterFooter';
@@ -18,6 +21,7 @@ import defaultClasses from './filterModal.css';
  */
 const FilterModal = props => {
     const { filters } = props;
+    const { formatMessage } = useIntl();
     const talonProps = useFilterModal({ filters });
     const {
         filterApi,
@@ -27,10 +31,11 @@ const FilterModal = props => {
         handleApply,
         handleClose,
         handleReset,
+        handleKeyDownActions,
         isOpen
     } = talonProps;
 
-    const classes = mergeClasses(defaultClasses, props.classes);
+    const classes = useStyle(defaultClasses, props.classes);
     const modalClass = isOpen ? classes.root_open : classes.root;
 
     const filtersList = useMemo(
@@ -53,36 +58,89 @@ const FilterModal = props => {
         [filterApi, filterItems, filterNames, filterState]
     );
 
-    return (
-        <Modal>
-            <aside className={modalClass}>
-                <div className={classes.body}>
-                    <div className={classes.header}>
-                        <h2 className={classes.headerTitle}>{'Filter By'}</h2>
-                        <button onClick={handleClose}>
-                            <Icon src={CloseIcon} />
-                        </button>
-                    </div>
-                    <CurrentFilters
-                        filterApi={filterApi}
-                        filterNames={filterNames}
-                        filterState={filterState}
-                    />
-                    <ul className={classes.blocks}>{filtersList}</ul>
-                </div>
-                <FilterFooter
-                    applyFilters={handleApply}
-                    hasFilters={!!filterState.size}
-                    isOpen={isOpen}
-                    resetFilters={handleReset}
+    const filtersAriaLabel = formatMessage({
+        id: 'filterModal.filters.ariaLabel',
+        defaultMessage: 'Filters'
+    });
+
+    const closeAriaLabel = formatMessage({
+        id: 'filterModal.filters.close.ariaLabel',
+        defaultMessage: 'Close filters popup.'
+    });
+
+    const clearAllAriaLabel = formatMessage({
+        id: 'filterModal.action.clearAll.ariaLabel',
+        defaultMessage: 'Clear all applied filters'
+    });
+
+    const clearAll = filterState.size ? (
+        <div className={classes.action}>
+            <LinkButton
+                type="button"
+                onClick={handleReset}
+                ariaLabel={clearAllAriaLabel}
+            >
+                <FormattedMessage
+                    id={'filterModal.action'}
+                    defaultMessage={'Clear all'}
                 />
-            </aside>
-        </Modal>
+            </LinkButton>
+        </div>
+    ) : null;
+
+    if (!isOpen) {
+        return null;
+    }
+
+    return (
+        <Portal>
+            {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
+            <FocusScope contain restoreFocus autoFocus>
+                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+                <aside className={modalClass} onKeyDown={handleKeyDownActions}>
+                    <div className={classes.body}>
+                        <div className={classes.header}>
+                            <h2 className={classes.headerTitle}>
+                                <FormattedMessage
+                                    id={'filterModal.headerTitle'}
+                                    defaultMessage={'Filters'}
+                                />
+                            </h2>
+                            <button
+                                onClick={handleClose}
+                                aria-disabled={false}
+                                aria-label={closeAriaLabel}
+                            >
+                                <Icon src={CloseIcon} />
+                            </button>
+                        </div>
+                        <CurrentFilters
+                            filterApi={filterApi}
+                            filterNames={filterNames}
+                            filterState={filterState}
+                        />
+                        {clearAll}
+                        <ul
+                            className={classes.blocks}
+                            aria-label={filtersAriaLabel}
+                        >
+                            {filtersList}
+                        </ul>
+                    </div>
+                    <FilterFooter
+                        applyFilters={handleApply}
+                        hasFilters={!!filterState.size}
+                        isOpen={isOpen}
+                    />
+                </aside>
+            </FocusScope>
+        </Portal>
     );
 };
 
 FilterModal.propTypes = {
     classes: shape({
+        action: string,
         blocks: string,
         body: string,
         header: string,
@@ -92,7 +150,7 @@ FilterModal.propTypes = {
     }),
     filters: arrayOf(
         shape({
-            request_var: string,
+            attribute_code: string,
             items: array
         })
     )

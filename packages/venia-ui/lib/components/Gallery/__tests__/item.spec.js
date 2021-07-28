@@ -35,8 +35,11 @@ const classes = {
 const validItem = {
     id: 1,
     name: 'Test Product',
-    small_image: '/foo/bar/pic.png',
+    small_image: {
+        url: '/foo/bar/pic.png'
+    },
     url_key: 'strive-shoulder-pack',
+    url_suffix: '.html',
     price: {
         regularPrice: {
             amount: {

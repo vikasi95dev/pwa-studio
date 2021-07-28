@@ -1,20 +1,26 @@
-import { defaultDataIdFromObject } from 'apollo-cache-inmemory';
+import { defaultDataIdFromObject } from '@apollo/client/cache';
 
 /**
+ * @deprecated
  * A non-exhaustive list of Types defined by the Magento GraphQL schema.
  */
 export const MagentoGraphQLTypes = {
     BundleProduct: 'BundleProduct',
+    Cart: 'Cart',
     ConfigurableProduct: 'ConfigurableProduct',
+    Customer: 'Customer',
     DownloadableProduct: 'DownloadableProduct',
     GiftCardProduct: 'GiftCardProduct',
     GroupedProduct: 'GroupedProduct',
     ProductInterface: 'ProductInterface',
     SimpleProduct: 'SimpleProduct',
-    VirtualProduct: 'VirtualProduct'
+    VirtualProduct: 'VirtualProduct',
+    SelectedConfigurableOption: 'SelectedConfigurableOption'
 };
 
 /**
+ * @deprecated - replaced by type_policies
+ *
  * The default way the Apollo InMemoryCache stores objects is by using a key
  * that is a concatenation of the `__typename` and `id` (or `_id`) fields.
  * For example, "ConfigurableProduct:1098".
@@ -42,7 +48,19 @@ export const cacheKeyFromType = object => {
             return object.url_key
                 ? `${MagentoGraphQLTypes.ProductInterface}:${object.url_key}`
                 : defaultDataIdFromObject(object);
-
+        // ID field is not based on selected values and is not unique; use unique value ID instead.
+        case MagentoGraphQLTypes.SelectedConfigurableOption:
+            return object.value_id
+                ? `${MagentoGraphQLTypes.SelectedConfigurableOption}:${
+                      object.value_id
+                  }`
+                : null;
+        // Only maintain a single cart entry
+        case MagentoGraphQLTypes.Cart:
+            return MagentoGraphQLTypes.Cart;
+        // Only maintain single customer entry
+        case MagentoGraphQLTypes.Customer:
+            return MagentoGraphQLTypes.Customer;
         // Fallback to default handling.
         default:
             return defaultDataIdFromObject(object);
